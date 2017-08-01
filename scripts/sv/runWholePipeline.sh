@@ -41,17 +41,31 @@ SV_ARGS=${*:-${SV_ARGS:-""}}
 # expand any local variables passed as strings (e.g. PROJECT_OUTPUT_DIR)
 eval "SV_ARGS=\"${SV_ARGS}\""
 
-# Choose NUM_EXECUTORS = 2 * NUM_WORKERS
+# Choose 3 executors per worker, one on master
 # NOTE: this would find preemptible workers, but it produces
 # (erroneous?) deprecation warnings
 #NUM_WORKERS=$(gcloud compute instances list --filter="name ~ ${CLUSTER_NAME}-[sw].*" | grep RUNNING | wc -l)
 # this works but does not see preemptible workers
-NUM_WORKERS=$(gcloud dataproc clusters list --filter "clusterName = ${CLUSTER_NAME}" | tail -n 1 | awk '{print $2}')
+#NUM_WORKERS=$(gcloud dataproc clusters list --filter "clusterName = ${CLUSTER_NAME}" | tail -n 1 | awk '{print $2}')
+# This gets all. the -1 is to subtract away master
+NUM_WORKERS=$(gcloud dataproc clusters describe ${CLUSTER_NAME} | grep numInstances | awk '{sum += $2} END {print sum - 1}')
 if [ -z "${NUM_WORKERS}" ]; then
     echo "Cluster \"${CLUSTER_NAME}\" not found"
     exit 1
 fi
-NUM_EXECUTORS=$((2 * ${NUM_WORKERS}))
+# was: 3 * NUM_WORKERS + 1
+#      --driver-memory 31G
+#      --executor-memory 31G
+#      --executor-cores 5
+#      --conf spark.yarn.executor.memoryOverhead=3300
+# tried: 5 * NUM_WORKERS + 2
+#      --driver-memory 19G
+#      --executor-memory 19G
+#      --executor-cores 3
+#      --conf spark.yarn.executor.memoryOverhead=1600
+#  got a crash the time I tried it...
+# next time, try first way, but with 7 executor cores instead of 5
+NUM_EXECUTORS=$((3 * ${NUM_WORKERS} + 1))
 
 "${GATK_DIR}/gatk-launch" StructuralVariationDiscoveryPipelineSpark \
     -I "${INPUT_BAM}" \
@@ -71,8 +85,9 @@ NUM_EXECUTORS=$((2 * ${NUM_WORKERS}))
     --sparkRunner GCS \
     --cluster "${CLUSTER_NAME}" \
     --num-executors ${NUM_EXECUTORS} \
-    --driver-memory 30G \
-    --executor-memory 30G \
-    --conf spark.yarn.executor.memoryOverhead=5000 \
+    --driver-memory 31G \
+    --executor-memory 31G \
+    --executor-cores 7 \
+    --conf spark.yarn.executor.memoryOverhead=3300 \
     --conf spark.network.timeout=600 \
     --conf spark.executor.heartbeatInterval=120

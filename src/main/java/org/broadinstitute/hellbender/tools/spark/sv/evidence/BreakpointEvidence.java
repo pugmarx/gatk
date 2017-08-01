@@ -188,38 +188,47 @@ public class BreakpointEvidence {
         private final String templateName; // QNAME of the read that was funky (i.e., the name of the fragment)
         private final TemplateFragmentOrdinal fragmentOrdinal; // which read we're talking about (first or last, for paired-end reads)
         private final boolean forwardStrand;
+        private final String cigarString;
+        private final int mappingQuality;
 
         /**
          * evidence offset and width is set to "the rest of the fragment" not covered by this read
          */
-        protected ReadEvidence( final GATKRead read, final ReadMetadata metadata ) {
-            super(restOfFragmentInterval(read,metadata), SINGLE_READ_WEIGHT, false);
+        protected ReadEvidence( final GATKRead read, final ReadMetadata metadata, final int readWeight ) {
+            super(restOfFragmentInterval(read,metadata), readWeight, false);
             this.templateName = read.getName();
             if ( templateName == null ) throw new GATKException("Read has no name.");
             this.fragmentOrdinal = TemplateFragmentOrdinal.forRead(read);
             this.forwardStrand = ! read.isReverseStrand();
+            this.cigarString = read.getCigar().toString();
+            this.mappingQuality = read.getMappingQuality();
         }
 
         /**
          * for use when the uncertainty in location has a fixed size
          */
-        protected ReadEvidence( final GATKRead read, final ReadMetadata metadata,
-                                final int contigOffset, final int offsetUncertainty, final boolean forwardStrand ) {
+        protected ReadEvidence( final GATKRead read, final ReadMetadata metadata, final int contigOffset,
+                                final int offsetUncertainty, final boolean forwardStrand, final int readWeight ) {
             super(fixedWidthInterval(metadata.getContigID(read.getContig()),contigOffset,offsetUncertainty),
-                    SINGLE_READ_WEIGHT, false);
+                  readWeight, false);
             this.templateName = read.getName();
             if ( templateName == null ) throw new GATKException("Read has no name.");
             this.fragmentOrdinal = TemplateFragmentOrdinal.forRead(read);
             this.forwardStrand = forwardStrand;
+            this.cigarString = read.getCigar().toString();
+            this.mappingQuality = read.getMappingQuality();
         }
 
         @VisibleForTesting ReadEvidence( final SVInterval interval, final int weight,
                                          final String templateName, final TemplateFragmentOrdinal fragmentOrdinal,
-                                         final boolean validated, final boolean forwardStrand ) {
+                                         final boolean validated, final boolean forwardStrand,
+                                         final String cigarString, final int mappingQuality) {
             super(interval, weight, validated);
             this.templateName = templateName;
             this.fragmentOrdinal = fragmentOrdinal;
             this.forwardStrand = forwardStrand;
+            this.cigarString = cigarString;
+            this.mappingQuality = mappingQuality;
         }
 
         /**
@@ -232,6 +241,8 @@ public class BreakpointEvidence {
             this.templateName = input.readString();
             this.fragmentOrdinal = TemplateFragmentOrdinal.values()[input.readByte()];
             this.forwardStrand = input.readBoolean();
+            this.cigarString = input.readString();
+            this.mappingQuality = input.readInt();
         }
 
         @Override
@@ -240,6 +251,8 @@ public class BreakpointEvidence {
             output.writeString(templateName);
             output.writeByte(fragmentOrdinal.ordinal());
             output.writeBoolean(forwardStrand);
+            output.writeString(cigarString);
+            output.writeInt(mappingQuality);
         }
 
         public String getTemplateName() {
@@ -257,7 +270,7 @@ public class BreakpointEvidence {
 
         @Override
         public String toString() {
-            return super.toString() + "\t" + templateName + fragmentOrdinal;
+            return super.toString() + "\t" + templateName + fragmentOrdinal + '/' + cigarString + '/' + mappingQuality;
         }
 
         public static final class Serializer extends com.esotericsoftware.kryo.Serializer<ReadEvidence> {
@@ -321,6 +334,7 @@ public class BreakpointEvidence {
     public static final class SplitRead extends ReadEvidence {
         private static final int UNCERTAINTY = 3;
         private static final String SA_TAG_NAME = "SA";
+        private static final int SPLIT_READ_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
         private final String cigar;
         private final String tagSA;
         private final boolean primaryAlignmentForwardStrand;
@@ -329,7 +343,8 @@ public class BreakpointEvidence {
 
         public SplitRead( final GATKRead read, final ReadMetadata metadata, final boolean primaryAlignmentClippedAtAlignmentStart ) {
             // todo: if reads have multiple SA tags.. we should have two pieces of evidence with the right strands
-            super(read, metadata, primaryAlignmentClippedAtAlignmentStart ? read.getStart() : read.getEnd(), UNCERTAINTY, !primaryAlignmentClippedAtAlignmentStart);
+            super(read, metadata, primaryAlignmentClippedAtAlignmentStart ? read.getStart() : read.getEnd(),
+                  UNCERTAINTY, !primaryAlignmentClippedAtAlignmentStart, SPLIT_READ_WEIGHT);
             cigar = read.getCigar().toString();
             this.primaryAlignmentForwardStrand = !read.isReverseStrand();
             if ( cigar.isEmpty() ) throw new GATKException("Read has no cigar string.");
@@ -529,9 +544,10 @@ public class BreakpointEvidence {
     public static final class LargeIndel extends ReadEvidence {
         private static final int UNCERTAINTY = 4;
         private final String cigar;
+        private static final int LARGE_INDEL_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
 
         LargeIndel( final GATKRead read, final ReadMetadata metadata, final int contigOffset ) {
-            super(read, metadata, contigOffset, UNCERTAINTY, true);
+            super(read, metadata, contigOffset, UNCERTAINTY, true, LARGE_INDEL_WEIGHT);
             cigar = read.getCigar().toString();
             if ( cigar == null ) throw new GATKException("Read has no cigar string.");
         }
@@ -567,9 +583,10 @@ public class BreakpointEvidence {
 
     @DefaultSerializer(MateUnmapped.Serializer.class)
     public static final class MateUnmapped extends ReadEvidence {
+        private static final int MATE_UNMAPPED_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
 
         MateUnmapped( final GATKRead read, final ReadMetadata metadata ) {
-            super(read, metadata);
+            super(read, metadata, MATE_UNMAPPED_WEIGHT);
         }
 
         private MateUnmapped( final Kryo kryo, final Input input ) { super(kryo, input); }
@@ -602,8 +619,8 @@ public class BreakpointEvidence {
         // tries to correct for that.
         public static final int MATE_ALIGNMENT_LENGTH_UNCERTAINTY = 2;
 
-        public DiscordantReadPairEvidence(final GATKRead read, final ReadMetadata metadata) {
-            super(read, metadata);
+        public DiscordantReadPairEvidence(final GATKRead read, final ReadMetadata metadata, final int weight) {
+            super(read, metadata, weight);
             target = getMateTargetInterval(read, metadata);
             targetForwardStrand = getMateForwardStrand(read);
             if (read.hasAttribute("MQ")) {
@@ -685,9 +702,10 @@ public class BreakpointEvidence {
 
     @DefaultSerializer(InterContigPair.Serializer.class)
     public static final class InterContigPair extends DiscordantReadPairEvidence {
+        private static final int INTER_CONTIG_PAIR_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
 
         InterContigPair( final GATKRead read, final ReadMetadata metadata ) {
-            super(read, metadata);
+            super(read, metadata, INTER_CONTIG_PAIR_WEIGHT);
         }
 
         private InterContigPair( final Kryo kryo, final Input input ) {
@@ -714,9 +732,10 @@ public class BreakpointEvidence {
 
     @DefaultSerializer(OutiesPair.Serializer.class)
     public static final class OutiesPair extends DiscordantReadPairEvidence {
+        private static final int OUTIES_PAIR_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
 
         OutiesPair( final GATKRead read, final ReadMetadata metadata ) {
-            super(read, metadata);
+            super(read, metadata, OUTIES_PAIR_WEIGHT);
         }
 
         private OutiesPair( final Kryo kryo, final Input input ) {
@@ -749,9 +768,10 @@ public class BreakpointEvidence {
 
     @DefaultSerializer(SameStrandPair.Serializer.class)
     public static final class SameStrandPair extends DiscordantReadPairEvidence {
+        private static final int SAME_STRAND_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
 
         SameStrandPair( final GATKRead read, final ReadMetadata metadata ) {
-            super(read, metadata);
+            super(read, metadata, SAME_STRAND_WEIGHT);
         }
 
         private SameStrandPair( final Kryo kryo, final Input input ) {
@@ -781,9 +801,10 @@ public class BreakpointEvidence {
         private final int templateSize;
         private final int mateStartPosition;
         private final boolean mateReverseStrand;
+        private static final int WEIRD_TEMPLATE_SIZE_WEIGHT = ReadEvidence.SINGLE_READ_WEIGHT;
 
         WeirdTemplateSize( final GATKRead read, final ReadMetadata metadata ) {
-            super(read, metadata);
+            super(read, metadata, WEIRD_TEMPLATE_SIZE_WEIGHT);
             this.templateSize = read.getFragmentLength();
             this.mateStartPosition = read.getMateStart();
             this.mateReverseStrand = read.mateIsReverseStrand();

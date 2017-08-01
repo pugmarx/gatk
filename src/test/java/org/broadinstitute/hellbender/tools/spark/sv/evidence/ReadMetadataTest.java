@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -38,6 +39,9 @@ public class ReadMetadataTest extends BaseTest {
         Assert.assertEquals(readMetadata.getLibraryStatistics(readMetadata.getLibraryName(groupName)),
                 LIBRARY_STATISTICS);
         Assert.assertThrows(() -> readMetadata.getLibraryName("not a real name"));
+
+        final File metadataFile = BaseTest.createTempFile("metadata", "");
+        ReadMetadata.writeMetadata(readMetadata, metadataFile.toString());
     }
 
     @Test(groups = "sv")
