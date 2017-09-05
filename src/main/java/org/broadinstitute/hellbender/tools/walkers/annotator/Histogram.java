@@ -39,27 +39,30 @@ public class Histogram {
     }
 
     public void add(final Double d, final int count) {
-        if (count < 1)
+        if (count < 1) {
             throw new GATKException("Cannot add non-positive counts to Histogram.");
+        }
         long binKey = getBinnedValue(d);
-        if (isValidBinKey(binKey))
-            dataList.add((int)binKey, count);
-        else
+        if (isValidBinKey(binKey)) {
+            dataList.add((int) binKey, count);
+        } else {
             throw new GATKException("Histogram values are suspiciously extreme.  Failed to add " + d + " to the Histogram.");
+        }
     }
 
     public void add(final Histogram h) {
-        if (!this.binSize.equals(h.binSize))
+        if (!this.binSize.equals(h.binSize)) {
             throw new GATKException("Histogram bin sizes are mismatched -- cannot add bin size " + this.binSize + " to " + h.binSize);
-        this.dataList.add(h.dataList);
+        } this.dataList.add(h.dataList);
     }
 
     public Integer get(final Double d) {
         long binKey = getBinnedValue(d);
-        if (isValidBinKey(binKey))
-            return dataList.getValueCounts().get((int)binKey);
-        else
+        if (isValidBinKey(binKey)) {
+            return dataList.getValueCounts().get((int) binKey);
+        } else {
             throw new GATKException("Requested value is suspiciously extreme.  Failed to retrieve " + d + " from the Histogram.");
+        }
     }
 
     /**
@@ -73,8 +76,9 @@ public class Histogram {
             numItems += count;
         }
         boolean oddNumberValues = true;
-        if(numItems % 2 == 0)
+        if(numItems % 2 == 0) {
             oddNumberValues = false;
+        }
         int medianIndex = (numItems+1)/2;
 
         int counter = 0;
@@ -112,12 +116,14 @@ public class Histogram {
         printDelim = ",";
         String str = "";
         Object[] keys = dataList.valueCounts.keySet().toArray();
-        if (keys.length == 0)
+        if (keys.length == 0) {
             return Double.toString(Double.NaN);
+        }
         Arrays.sort(keys);
         for (Object i: keys){
-            if(!str.isEmpty())
-                str+=printDelim;
+            if(!str.isEmpty()) {
+                str += printDelim;
+            }
             str+=(String.format(precisionFormat,(double)(int)i*binSize)+printDelim+dataList.valueCounts.get(i));  //key i needs to be output with specified precision
         }
         return str;

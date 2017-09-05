@@ -34,15 +34,6 @@ public abstract class AS_StrandBiasTest extends StrandBiasTest implements Reduci
     }
 
     @Override
-    public List<VCFInfoHeaderLine> getDescriptions() {
-        //TODO only raw for now
-//        if (AnnotationUtils.walkerRequiresRawData(callingWalker))
-            return Arrays.asList(GATKVCFHeaderLines.getInfoLine(getRawKeyName()));
-//        else
-//            return Arrays.asList(GATKVCFHeaderLines.getInfoLine(getKeyNames().get(0)));
-    }
-
-    @Override
     public String getRawKeyName() { return GATKVCFConstants.AS_SB_TABLE_KEY; }
 
     @Override
@@ -109,12 +100,14 @@ public abstract class AS_StrandBiasTest extends StrandBiasTest implements Reduci
     protected String makeReducedAnnotationString(VariantContext vc, Map<Allele,Double> perAltsStrandCounts) {
         String annotationString = "";
         for (Allele a : vc.getAlternateAlleles()) {
-            if (!annotationString.isEmpty())
+            if (!annotationString.isEmpty()) {
                 annotationString += REDUCED_DELIM;
-            if (!perAltsStrandCounts.containsKey(a))
+            }
+            if (!perAltsStrandCounts.containsKey(a)) {
                 logger.warn("ERROR: VC allele not found in annotation alleles -- maybe there was trimming?");
-            else
+            } else {
                 annotationString += String.format("%.3f", perAltsStrandCounts.get(a));
+            }
         }
         return annotationString;
     }
@@ -162,12 +155,13 @@ public abstract class AS_StrandBiasTest extends StrandBiasTest implements Reduci
      */
     @Override
     public  Map<String, Object> finalizeRawData(final VariantContext vc, final VariantContext originalVC) {
-        if (!vc.hasAttribute(getRawKeyName()))
+        if (!vc.hasAttribute(getRawKeyName())) {
             return new HashMap<>();
+        }
         String rawRankSumData = vc.getAttributeAsString(getRawKeyName(),null);
-        if (rawRankSumData == null)
+        if (rawRankSumData == null) {
             return new HashMap<>();
-
+        }
         AlleleSpecificAnnotationData<List<Integer>> myData = new AlleleSpecificAnnotationData<>(originalVC.getAlleles(), rawRankSumData);
         parseRawDataString(myData);
 
@@ -178,7 +172,10 @@ public abstract class AS_StrandBiasTest extends StrandBiasTest implements Reduci
     }
 
     protected void parseRawDataString(ReducibleAnnotationData<List<Integer>> myData) {
-        final String rawDataString = myData.getRawData();
+        String rawDataString = myData.getRawData();
+        if (rawDataString.startsWith("[")) {
+            rawDataString = rawDataString.substring(1,rawDataString.length()-1);
+        }
         String[] rawDataPerAllele;
         String[] rawListEntriesAsStringVector;
         Map<Allele, List<Integer>> perAlleleValues = new HashMap<>();
@@ -190,14 +187,15 @@ public abstract class AS_StrandBiasTest extends StrandBiasTest implements Reduci
         rawDataPerAllele = rawDataString.split(SPLIT_DELIM);
         for (int i=0; i<rawDataPerAllele.length; i++) {
             String alleleData = rawDataPerAllele[i];
-            if (alleleData.isEmpty())
-                continue;
-            List<Integer> alleleList = perAlleleValues.get(myData.getAlleles().get(i));
-            rawListEntriesAsStringVector = alleleData.split(",");
-            //Read counts will only ever be integers
-            for (String s : rawListEntriesAsStringVector) {
-                if (!s.isEmpty())
-                    alleleList.add(Integer.parseInt(s.trim()));
+            if (!alleleData.isEmpty()) {
+                List<Integer> alleleList = perAlleleValues.get(myData.getAlleles().get(i));
+                rawListEntriesAsStringVector = alleleData.split(",");
+                //Read counts will only ever be integers
+                for (String s : rawListEntriesAsStringVector) {
+                    if (!s.isEmpty()) {
+                        alleleList.add(Integer.parseInt(s.trim()));
+                    }
+                }
             }
         }
         myData.setAttributeMap(perAlleleValues);

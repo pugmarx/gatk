@@ -21,4 +21,9 @@ public class AS_FisherStrandUnitTest extends ReducibleAnnotationBaseTest {
     protected String getRawKey() {
         return GATKVCFConstants.AS_FISHER_STRAND_KEY;
     }
+
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_FISHER_STRAND_KEY;
+    }
 }

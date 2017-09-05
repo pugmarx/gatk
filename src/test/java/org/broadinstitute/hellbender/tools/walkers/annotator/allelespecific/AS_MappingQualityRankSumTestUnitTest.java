@@ -20,4 +20,9 @@ public class AS_MappingQualityRankSumTestUnitTest extends ReducibleAnnotationBas
     protected String getRawKey() {
         return GATKVCFConstants.AS_RAW_MAP_QUAL_RANK_SUM_KEY;
     }
+
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_MAP_QUAL_RANK_SUM_KEY;
+    }
 }

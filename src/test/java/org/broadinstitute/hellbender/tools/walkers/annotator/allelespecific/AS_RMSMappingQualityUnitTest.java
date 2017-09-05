@@ -29,6 +29,11 @@ public class AS_RMSMappingQualityUnitTest extends ReducibleAnnotationBaseTest {
         return GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY;
     }
 
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY;
+    }
+
     @Test
     public void testFinalizeAnnotations() throws Exception {
         final List<String> annotationGroupsToUse = Collections.emptyList();

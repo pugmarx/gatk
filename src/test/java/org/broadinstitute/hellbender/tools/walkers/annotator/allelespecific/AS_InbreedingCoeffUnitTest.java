@@ -28,6 +28,11 @@ public class AS_InbreedingCoeffUnitTest extends ReducibleAnnotationBaseTest {
         return GATKVCFConstants.AS_INBREEDING_COEFFICIENT_KEY;
     }
 
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_INBREEDING_COEFFICIENT_KEY;
+    }
+
     private static double DELTA_PRECISION = 0.001;
     private Allele Aref, T, C;
     private int[] hetPLs, homRefPLs;

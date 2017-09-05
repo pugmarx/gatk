@@ -21,4 +21,9 @@ public class AS_QualByDepthUnitTest extends ReducibleAnnotationBaseTest {
         return GATKVCFConstants.AS_QUAL_KEY;
     }
 
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_QUAL_KEY;
+    }
+
 }

@@ -205,8 +205,6 @@ public final class RMSMappingQualityUnitTest {
         final Map<String, Object> output = new RMSMappingQuality().finalizeRawData(vc, originalVC);
         Assert.assertEquals(output.get("MQ"), "10.00");
     }
-    //TODO decide upon which method for making the raw data is best to cary through to the final version
-
 
     @Test
     public void testFinalizeRawMQ(){

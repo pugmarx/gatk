@@ -56,4 +56,9 @@ public class AS_ReadPosRankSumTestUnitTest extends ReducibleAnnotationBaseTest {
         return GATKVCFConstants.AS_RAW_READ_POS_RANK_SUM_KEY;
     }
 
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_READ_POS_RANK_SUM_KEY;
+    }
+
 }

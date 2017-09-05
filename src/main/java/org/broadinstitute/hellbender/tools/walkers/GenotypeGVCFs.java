@@ -148,11 +148,11 @@ public final class GenotypeGVCFs extends VariantWalker {
 
         final SampleList samples = new IndexedSampleList(inputVCFHeader.getGenotypeSamples()); //todo should this be getSampleNamesInOrder?
 
-        genotypingEngine = new MinimalGenotypingEngine(createUAC(), samples, new GeneralPloidyFailOverAFCalculatorProvider(genotypeArgs));
+        genotypingEngine = new MinimalGenotypingEngine(createUAC(), samples, new GeneralPloidyFailOverAFCalculatorProvider(genotypeArgs), annotationEngine.isRequestedReducibleRawKey(GATKVCFConstants.AS_QUAL_KEY)); // We only want the engine to generate the AS_QUOL key if we are using reducible annotations.
 
         annotationEngine = VariantAnnotatorEngine.ofSelectedMinusExcluded(variantAnnotationArgumentCollection, dbsnp.dbsnp, Collections.emptyList());
 
-        merger = new ReferenceConfidenceVariantContextMerger();
+        merger = new ReferenceConfidenceVariantContextMerger(annotationEngine);
 
         setupVCFWriter(inputVCFHeader, samples);
     }
@@ -168,7 +168,7 @@ public final class GenotypeGVCFs extends VariantWalker {
         // Remove GCVFBlocks
         headerLines.removeIf(vcfHeaderLine -> vcfHeaderLine.getKey().startsWith(GVCF_BLOCK));
 
-        headerLines.addAll(annotationEngine.getVCFAnnotationDescriptions());
+        headerLines.addAll(annotationEngine.getVCFAnnotationDescriptions(false));
         headerLines.addAll(genotypingEngine.getAppropriateVCFInfoHeaders());
 
         // add headers for annotations added by this tool
@@ -214,10 +214,9 @@ public final class GenotypeGVCFs extends VariantWalker {
             // only re-genotype polymorphic sites
             final VariantContext regenotypedVC = calculateGenotypes(originalVC);
             if (isProperlyPolymorphic(regenotypedVC)) {
-                final VariantContext allelesTrimmed = GATKVariantContextUtils.reverseTrimAlleles(regenotypedVC);
-                final VariantContext withAnnotations = addGenotypingAnnotations(originalVC.getAttributes(), allelesTrimmed);
-                //TODO: remove this when proper support for reducible annotations is added
-                result = RMSMappingQuality.getInstance().finalizeRawMQ(withAnnotations);
+                final VariantContext withGenotypingAnnotations = addGenotypingAnnotations(originalVC.getAttributes(), regenotypedVC);
+                final VariantContext withAnnotations = annotationEngine.finalizeAnnotations(withGenotypingAnnotations,originalVC);
+                result = GATKVariantContextUtils.reverseTrimAlleles(withAnnotations);
             } else if (includeNonVariants) {
                 result = originalVC;
             } else {
@@ -298,6 +297,8 @@ public final class GenotypeGVCFs extends VariantWalker {
         if (newVC.hasAttribute(GATKVCFConstants.NUMBER_OF_DISCOVERED_ALLELES_KEY)) {
             attrs.put(GATKVCFConstants.NUMBER_OF_DISCOVERED_ALLELES_KEY, newVC.getAttribute(GATKVCFConstants.NUMBER_OF_DISCOVERED_ALLELES_KEY));
         }
+        if (newVC.hasAttribute(GATKVCFConstants.AS_QUAL_KEY))
+            attrs.put(GATKVCFConstants.AS_QUAL_KEY, newVC.getAttribute(GATKVCFConstants.AS_QUAL_KEY));
         return new VariantContextBuilder(newVC).attributes(attrs).make();
     }
 

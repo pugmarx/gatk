@@ -5,15 +5,12 @@ import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.*;
 import org.apache.commons.lang3.ArrayUtils;
-import org.bdgenomics.formats.avro.GenotypeAllele;
 import org.broadinstitute.barclay.argparser.CommandLineException;
 import org.broadinstitute.hellbender.engine.FeatureContext;
 import org.broadinstitute.hellbender.engine.FeatureDataSource;
 import org.broadinstitute.hellbender.engine.FeatureInput;
-import org.broadinstitute.hellbender.engine.ReferenceContext;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific.AS_RMSMappingQuality;
-import org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific.ReducibleAnnotation;
 import org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific.ReducibleAnnotationData;
 import org.broadinstitute.hellbender.utils.*;
 import org.broadinstitute.hellbender.utils.genotyper.*;
@@ -61,7 +58,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final ReducibleAnnotationData<Object> myData = new ReducibleAnnotationData<>("-10.0");
 
         new AS_RMSMappingQuality().calculateRawData(vc, likelihoods, myData);
-        Map<String, List<ReducibleAnnotationData<Object>>> testAnnotationData = new HashMap<>();
+        Map<String, List<Object>> testAnnotationData = new HashMap<>();
         testAnnotationData.put(new AS_RMSMappingQuality().getRawKeyName(), Collections.singletonList(myData));
 
         Map<String, Object> value = vae.combineAnnotations(alleles, testAnnotationData);
@@ -133,7 +130,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final FeatureInput<VariantContext> dbSNPBinding = null;
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofAllMinusExcluded(annotationsToExclude, dbSNPBinding, features);
-        Assert.assertFalse(vae.getVCFAnnotationDescriptions().contains(null));
+        Assert.assertFalse(vae.getVCFAnnotationDescriptions(false).contains(null));
         Assert.assertFalse(vae.getGenotypeAnnotations().isEmpty());
         Assert.assertFalse(vae.getInfoAnnotations().isEmpty());
 
@@ -142,7 +139,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         Assert.assertEquals(vae.getGenotypeAnnotations().size(), knowGenoAnnos.size());
         Assert.assertEquals(vae.getInfoAnnotations().size(), knowInfoAnnos.size());
 
-        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions();
+        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions(false);
         Assert.assertFalse(vcfAnnotationDescriptions.isEmpty());
 
         Assert.assertFalse(vcfAnnotationDescriptions.contains(VCFStandardHeaderLines.getInfoLine(VCFConstants.DBSNP_KEY)));
@@ -156,11 +153,11 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final FeatureInput<VariantContext> dbSNPBinding = null;
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofAllMinusExcluded(annotationsToExclude, dbSNPBinding, features);
-        Assert.assertFalse(vae.getVCFAnnotationDescriptions().contains(null));
+        Assert.assertFalse(vae.getVCFAnnotationDescriptions(false).contains(null));
         Assert.assertFalse(vae.getGenotypeAnnotations().isEmpty());
         Assert.assertFalse(vae.getInfoAnnotations().isEmpty());
 
-        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions();
+        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions(false);
         Assert.assertFalse(vcfAnnotationDescriptions.isEmpty());
 
         Assert.assertFalse(vcfAnnotationDescriptions.contains(VCFStandardHeaderLines.getInfoLine(VCFConstants.DBSNP_KEY)));
@@ -196,7 +193,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final FeatureInput<VariantContext> dbSNPBinding = null;
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofAllMinusExcluded(annotationsToExclude, dbSNPBinding, features);
-        Assert.assertFalse(vae.getVCFAnnotationDescriptions().contains(null));
+        Assert.assertFalse(vae.getVCFAnnotationDescriptions(false).contains(null));
         Assert.assertFalse(vae.getGenotypeAnnotations().isEmpty());
         Assert.assertFalse(vae.getInfoAnnotations().isEmpty());
     }
@@ -279,7 +276,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final FeatureInput<VariantContext> dbSNPBinding = null;
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofAllMinusExcluded(annotationsToExclude, dbSNPBinding, features);
-        Assert.assertFalse(vae.getVCFAnnotationDescriptions().contains(null));
+        Assert.assertFalse(vae.getVCFAnnotationDescriptions(false).contains(null));
 
         final int alt = 5;
         final int ref = 3;
@@ -340,7 +337,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofSelectedMinusExcluded(annotationGroupsToUse, annotationsToUse, annotationsToExclude, dbSNPBinding, features);
 
-        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions();
+        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions(false);
         Assert.assertTrue(vcfAnnotationDescriptions.contains(VCFStandardHeaderLines.getInfoLine(VCFConstants.DBSNP_KEY)));
 
         final int alt = 5;
@@ -375,7 +372,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
 
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofSelectedMinusExcluded(annotationGroupsToUse, annotationsToUse, annotationsToExclude, dbSNPBinding, features);
 
-        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions();
+        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions(false);
         Assert.assertFalse(vcfAnnotationDescriptions.contains(VCFStandardHeaderLines.getInfoLine(VCFConstants.DBSNP_KEY)));
 
         final VCFInfoHeaderLine fredHeaderLine = new VCFInfoHeaderLine(featureSourceName, 0, VCFHeaderLineType.Flag, featureSourceName + " Membership");
@@ -417,7 +414,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
 
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofSelectedMinusExcluded(annotationGroupsToUse, annotationsToUse, annotationsToExclude, dbSNPBinding, features);
 
-        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions();
+        final Set<VCFHeaderLine> vcfAnnotationDescriptions = vae.getVCFAnnotationDescriptions(false);
         Assert.assertTrue(vcfAnnotationDescriptions.contains(VCFStandardHeaderLines.getInfoLine(VCFConstants.DBSNP_KEY)));
         final VCFInfoHeaderLine fredHeaderLine = new VCFInfoHeaderLine(featureSourceName, 0, VCFHeaderLineType.Flag, featureSourceName + " Membership");
         Assert.assertTrue(vcfAnnotationDescriptions.contains(fredHeaderLine));
@@ -472,8 +469,8 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
 
         final List<String> annotationGroupsToUse= Collections.emptyList();
         final List<String> annotationsToUse = Arrays.asList(Coverage.class.getSimpleName(),
-                                                            DepthPerAlleleBySample.class.getSimpleName(),
-                                                            SampleList.class.getSimpleName());
+                DepthPerAlleleBySample.class.getSimpleName(),
+                SampleList.class.getSimpleName());
         final List<String> annotationsToExclude= Collections.emptyList();
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofSelectedMinusExcluded(annotationGroupsToUse, annotationsToUse, annotationsToExclude, dbSNPBinding, features);
@@ -485,7 +482,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
 
         final ReadLikelihoods<Allele> likelihoods = makeReadLikelihoods(ref, alt, refAllele, altAllele);
         final VariantContext resultVC = vae.annotateContext(makeVC(refAllele, altAllele), new FeatureContext(), null, likelihoods,
-                                            ann -> ann instanceof Coverage || ann instanceof DepthPerAlleleBySample);
+                ann -> ann instanceof Coverage || ann instanceof DepthPerAlleleBySample);
         Assert.assertEquals(resultVC.getCommonInfo().getAttribute(VCFConstants.DEPTH_KEY), String.valueOf(ref+alt));
 
         Assert.assertEquals(resultVC.getGenotype(0).getAD(), new int[]{ref, alt});
@@ -503,7 +500,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final FeatureInput<VariantContext> dbSNPBinding = null;
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
 
-        headerInfo.addAll(VariantAnnotatorEngine.ofAllMinusExcluded(annotationsToExclude, dbSNPBinding, features).getVCFAnnotationDescriptions());
+        headerInfo.addAll(VariantAnnotatorEngine.ofAllMinusExcluded(annotationsToExclude, dbSNPBinding, features).getVCFAnnotationDescriptions(false));
 
         Assert.assertFalse(headerInfo.contains(null));
         new VCFHeader(headerInfo, sampleSet);//make sure this does not blow up: https://github.com/broadinstitute/gatk/issues/1713
@@ -524,7 +521,7 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
             Assert.assertFalse(ifa.getDescriptions().contains(null), "getDescriptions contains null:" + ifa);
             Assert.assertFalse(ifa.getKeyNames().contains(null), "getKeyNames contains null:" + ifa);
         }
-        Assert.assertFalse(variantAnnotatorEngine.getVCFAnnotationDescriptions().contains(null));
+        Assert.assertFalse(variantAnnotatorEngine.getVCFAnnotationDescriptions(false).contains(null));
     }
 
     //TODO add test for AnnotateContextForActiveRegion

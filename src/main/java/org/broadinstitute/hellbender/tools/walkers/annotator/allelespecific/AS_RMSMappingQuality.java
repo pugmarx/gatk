@@ -51,15 +51,6 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
     public static final String PRINT_DELIM = "|";
 
     @Override
-    public List<VCFInfoHeaderLine> getDescriptions() {
-        //TODO I'm just going to ignore this for now
-//        if (AnnotationUtils.walkerRequiresRawData(callingWalker))
-            return Arrays.asList(GATKVCFHeaderLines.getInfoLine(getRawKeyName()));
-//        else
-//            return Arrays.asList(GATKVCFHeaderLines.getInfoLine(getKeyNames().get(0)));
-    }
-
-    @Override
     public Map<String, Object> annotate(final ReferenceContext ref,
                                         final VariantContext vc,
                                         final ReadLikelihoods<Allele> likelihoods) {
@@ -109,13 +100,13 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
         //check that alleles match
         for (final Allele currentAllele : combined.getAlleles()){
             //combined is initialized with all alleles, but toAdd might have only a subset
-            if(toAdd.getAttribute(currentAllele) == null)
-                continue;
-            if (toAdd.getAttribute(currentAllele) != null && combined.getAttribute(currentAllele) != null) {
-                combined.putAttribute(currentAllele, (double) combined.getAttribute(currentAllele) + (double) toAdd.getAttribute(currentAllele));
+            if(toAdd.getAttribute(currentAllele) != null) {
+                if (toAdd.getAttribute(currentAllele) != null && combined.getAttribute(currentAllele) != null) {
+                    combined.putAttribute(currentAllele, (double) combined.getAttribute(currentAllele) + (double) toAdd.getAttribute(currentAllele));
+                } else {
+                    combined.putAttribute(currentAllele, toAdd.getAttribute(currentAllele));
+                }
             }
-            else
-                combined.putAttribute(currentAllele, toAdd.getAttribute(currentAllele));
         }
     }
 
@@ -139,11 +130,13 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})//FIXME generics here blow up
     public Map<String, Object> finalizeRawData(final VariantContext vc, final VariantContext originalVC) {
-        if (!vc.hasAttribute(getRawKeyName()))
+        if (!vc.hasAttribute(getRawKeyName())) {
             return new HashMap<>();
+        }
         final String rawMQdata = vc.getAttributeAsString(getRawKeyName(),null);
-        if (rawMQdata == null)
+        if (rawMQdata == null) {
             return new HashMap<>();
+        }
 
         final Map<String,Object> annotations = new HashMap<>();
         final ReducibleAnnotationData myData = new AlleleSpecificAnnotationData<Double>(originalVC.getAlleles(), rawMQdata);
@@ -186,7 +179,6 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
         }
     }
 
-    //TODO merge annotationStringMethods
     private String makeRawAnnotationString(final List<Allele> vcAlleles, final Map<Allele, Number> perAlleleValues) {
         String annotationString = "";
         for (final Allele current : vcAlleles) {
@@ -206,11 +198,12 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
         final Map<Allele, Integer> variantADs = getADcounts(vc);
         String annotationString = "";
         for (final Allele current : vc.getAlternateAlleles()) {
-            if (!annotationString.isEmpty())
+            if (!annotationString.isEmpty()) {
                 annotationString += ",";
-            if (perAlleleValues.containsKey(current))
+            }
+            if (perAlleleValues.containsKey(current)) {
                 annotationString += String.format(printFormat, Math.sqrt((double) perAlleleValues.get(current) / variantADs.get(current)));
-            else {
+            } else {
                 logger.warn("ERROR: VC allele is not found in annotation alleles -- maybe there was trimming?");
             }
         }
@@ -229,12 +222,11 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
             variantADs.put(a,0);
 
         for (final Genotype gt : vc.getGenotypes()) {
-            if(!gt.hasAD()) {
-                continue;
-            }
-            final int[] ADs = gt.getAD();
-            for(int i = 1; i < vc.getNAlleles(); i++) {
-                variantADs.put(vc.getAlternateAllele(i-1), variantADs.get(vc.getAlternateAllele(i-1))+ADs[i]); //here -1 is to reconcile allele index with alt allele index
+            if(gt.hasAD()) {
+                final int[] ADs = gt.getAD();
+                for (int i = 1; i < vc.getNAlleles(); i++) {
+                    variantADs.put(vc.getAlternateAllele(i - 1), variantADs.get(vc.getAlternateAllele(i - 1)) + ADs[i]); //here -1 is to reconcile allele index with alt allele index
+                }
             }
         }
         return variantADs;

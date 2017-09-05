@@ -51,12 +51,6 @@ public class AS_QualByDepth extends InfoFieldAnnotation implements ReducibleAnno
     public String getRawKeyName() { return GATKVCFConstants.AS_QUAL_KEY; }
 
     @Override
-    public List<VCFInfoHeaderLine> getDescriptions() {
-        //We only have the finalized key name here because the raw key is internal to GenotypeGVCFs and won't get output in any VCF
-        return Arrays.asList(GATKVCFHeaderLines.getInfoLine(getKeyNames().get(0)));
-    }
-
-    @Override
     public Map<String, Object> annotate(final ReferenceContext ref,
                                         final VariantContext vc,
                                         final ReadLikelihoods<Allele> likelihoods ) {
@@ -95,21 +89,25 @@ public class AS_QualByDepth extends InfoFieldAnnotation implements ReducibleAnno
     @Override
     public Map<String, Object> finalizeRawData(VariantContext vc, VariantContext originalVC) {
         //we need to use the AS_QUAL value that was added to the VC by the GenotypingEngine
-        if ( !vc.hasAttribute(GATKVCFConstants.AS_QUAL_KEY) )
+        if ( !vc.hasAttribute(GATKVCFConstants.AS_QUAL_KEY) ) {
             return null;
+        }
 
         final GenotypesContext genotypes = vc.getGenotypes();
-        if ( genotypes == null || genotypes.isEmpty() )
+        if ( genotypes == null || genotypes.isEmpty() ) {
             return null;
+        }
 
         final List<Integer> standardDepth = getAlleleDepths(genotypes);
-        if (standardDepth == null) //all no-calls and homRefs
+        if (standardDepth == null) { //all no-calls and homRefs
             return null;
+        }
 
         //Parse the VC's allele-specific qual values
         List<Object> alleleQualObjList = vc.getAttributeAsList(GATKVCFConstants.AS_QUAL_KEY);
-        if (alleleQualObjList.size() != vc.getNAlleles() -1)
+        if (alleleQualObjList.size() != vc.getNAlleles() -1) {
             throw new IllegalStateException("Number of AS_QUAL values doesn't match the number of alternate alleles.");
+        }
         List<Double> alleleQualList = new ArrayList<>();
         for (final Object obj : alleleQualObjList) {
             alleleQualList.add(Double.parseDouble(obj.toString()));
@@ -138,16 +136,18 @@ public class AS_QualByDepth extends InfoFieldAnnotation implements ReducibleAnno
                 break;
             }
         }
-        if (numAlleles == -1) //no genotypes have AD
+        if (numAlleles == -1) { //no genotypes have AD
             return null;
+        }
         Integer[] alleleDepths = new Integer[numAlleles];
         for (int i = 0; i < alleleDepths.length; i++) {
             alleleDepths[i] = 0;
         }
         for (final Genotype genotype : genotypes) {
             // we care only about genotypes with variant alleles
-            if ( !genotype.isHet() && !genotype.isHomVar() )
+            if ( !genotype.isHet() && !genotype.isHomVar() ) {
                 continue;
+            }
 
             // if we have the AD values for this sample, let's make sure that the variant depth is greater than 1!
             if ( genotype.hasAD() ) {

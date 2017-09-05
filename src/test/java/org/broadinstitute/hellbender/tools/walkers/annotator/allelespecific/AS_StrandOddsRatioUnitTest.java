@@ -21,4 +21,9 @@ public class AS_StrandOddsRatioUnitTest extends ReducibleAnnotationBaseTest {
     protected String getRawKey() {
         return GATKVCFConstants.AS_SB_TABLE_KEY;
     }
+
+    @Override
+    protected String getKey() {
+        return GATKVCFConstants.AS_STRAND_ODDS_RATIO_KEY;
+    }
 }
