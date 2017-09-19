@@ -119,7 +119,7 @@ public final class SvDiscoverFromLocalAssemblyContigAlignmentsSpark extends GATK
                         referenceMultiSourceBroadcast, discoverStageArgs.fastaReference, localLogger);
     }
 
-    private enum RawTypes {
+    enum RawTypes {
         Ambiguous, Inv, InsDel, DispersedDupOrMEI, Cpx;
     }
 
@@ -166,8 +166,8 @@ public final class SvDiscoverFromLocalAssemblyContigAlignmentsSpark extends GATK
         return !hasOnly2Alignments(contigWithOnlyOneConfig) || !isSameChromosomeMapping(contigWithOnlyOneConfig);
     }
 
-    private static EnumMap<RawTypes, JavaRDD<AlignedContig>> divertReadsByPossiblyRawTypes(final JavaRDD<AlignedContig> contigsWithAlignmentsReconstructed,
-                                                                                           final Logger toolLogger) {
+    static EnumMap<RawTypes, JavaRDD<AlignedContig>> divertReadsByPossiblyRawTypes(final JavaRDD<AlignedContig> contigsWithAlignmentsReconstructed,
+                                                                                   final Logger toolLogger) {
 
         final EnumMap<RawTypes, JavaRDD<AlignedContig>> contigsByRawTypes = new EnumMap<>(RawTypes.class);
 
@@ -212,12 +212,12 @@ public final class SvDiscoverFromLocalAssemblyContigAlignmentsSpark extends GATK
         return contigsByRawTypes;
     }
 
-    private static void writeSAM(final JavaRDD<AlignedContig> filteredContigs, final String rawTypeString,
-                                 final JavaRDD<GATKRead> originalContigs, final Broadcast<SAMFileHeader> headerBroadcast,
-                                 final String outputDir, final Logger toolLogger) {
+    static void writeSAM(final JavaRDD<AlignedContig> filteredContigs, final String rawTypeString,
+                         final JavaRDD<GATKRead> originalContigs, final Broadcast<SAMFileHeader> headerBroadcast,
+                         final String outputDir, final Logger toolLogger) {
 
         final Set<String> filteredReadNames = new HashSet<>( filteredContigs.map(tig -> tig.contigName).distinct().collect() );
-        toolLogger.info(filteredReadNames.size() + " long reads indicating " + rawTypeString);
+        if (toolLogger!=null) toolLogger.info(filteredReadNames.size() + " long reads indicating " + rawTypeString);
         final JavaRDD<SAMRecord> splitLongReads = originalContigs.filter(read -> filteredReadNames.contains(read.getName()))
                 .map(read -> read.convertToSAMRecord(headerBroadcast.getValue()));
         FileUtils.writeSAMFile(splitLongReads.collect().iterator(), headerBroadcast.getValue(),
