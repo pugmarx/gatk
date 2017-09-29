@@ -32,7 +32,7 @@ public class ReferenceConfidenceVariantContextMergerUnitTest extends BaseTest {
     private final Allele ATC = Allele.create("ATC");
     private final Allele del = Allele.SPAN_DEL;
     private final Allele ATCref = Allele.create("ATC", true);
-    private final VariantAnnotatorEngine annotatorEngine = VariantAnnotatorEngine.ofAllMinusExcluded(Collections.EMPTY_LIST, null, Collections.EMPTY_LIST);
+    private final VariantAnnotatorEngine annotatorEngine = VariantAnnotatorEngine.ofAllMinusExcluded(Collections.emptyList(), null, Collections.emptyList());
 
     @Test(dataProvider = "referenceConfidenceMergeData")
     public void testReferenceConfidenceMerge(final String testID, final List<VariantContext> toMerge, final Locatable loc,

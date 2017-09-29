@@ -1,17 +1,13 @@
 package org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific;
 
-import htsjdk.samtools.util.Locatable;
-import htsjdk.variant.variantcontext.*;
-import htsjdk.variant.vcf.VCFConstants;
-import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.broadinstitute.hellbender.engine.FeatureDataSource;
-import org.broadinstitute.hellbender.engine.FeatureInput;
 import org.broadinstitute.hellbender.tools.walkers.ReferenceConfidenceVariantContextMerger;
 import org.broadinstitute.hellbender.tools.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.*;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.afcalc.GeneralPloidyFailOverAFCalculatorProvider;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
-import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.IndexedSampleList;
 import org.broadinstitute.hellbender.utils.test.BaseTest;
 import org.broadinstitute.hellbender.utils.test.VariantContextTestUtils;
@@ -94,7 +90,7 @@ public abstract class ReducibleAnnotationBaseTest extends BaseTest {
         uac.genotypeArgs = new GenotypeCalculationArgumentCollection();
         GeneralPloidyFailOverAFCalculatorProvider calculatorProvider = new GeneralPloidyFailOverAFCalculatorProvider(uac.genotypeArgs);
 
-        GenotypingEngine genotypingEngine = new MinimalGenotypingEngine(uac, new IndexedSampleList(result.getSampleNamesOrderedByName()), calculatorProvider);
+        GenotypingEngine<?> genotypingEngine = new MinimalGenotypingEngine(uac, new IndexedSampleList(result.getSampleNamesOrderedByName()), calculatorProvider);
         genotypingEngine.setAnnotationEngine(annotatorEngine);
         GenotypeLikelihoodsCalculationModel model = result.getType() == VariantContext.Type.INDEL
                 ? GenotypeLikelihoodsCalculationModel.INDEL
