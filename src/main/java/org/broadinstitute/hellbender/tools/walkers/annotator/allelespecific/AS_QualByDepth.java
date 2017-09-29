@@ -51,6 +51,11 @@ public class AS_QualByDepth extends InfoFieldAnnotation implements ReducibleAnno
     public String getRawKeyName() { return GATKVCFConstants.AS_QUAL_KEY; }
 
     @Override
+    public List<VCFInfoHeaderLine> getRawDescriptions() {
+        return getDescriptions();
+    }
+
+    @Override
     public Map<String, Object> annotate(final ReferenceContext ref,
                                         final VariantContext vc,
                                         final ReadLikelihoods<Allele> likelihoods ) {

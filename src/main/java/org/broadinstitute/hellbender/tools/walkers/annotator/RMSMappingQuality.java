@@ -43,6 +43,21 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     @Override
     public String getRawKeyName() { return GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY;}
 
+    @Override
+    public List<String> getKeyNames() {
+        return Arrays.asList(VCFConstants.RMS_MAPPING_QUALITY_KEY, getRawKeyName());
+    }
+
+    @Override
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(VCFStandardHeaderLines.getInfoLine(getKeyNames().get(0)), GATKVCFHeaderLines.getInfoLine(getRawKeyName()));
+    }
+
+    @Override
+    public List<VCFInfoHeaderLine> getRawDescriptions() {
+        return getDescriptions();
+    }
+
     /**
      * Generate the raw data necessary to calculate the annotation. Raw data is the final endpoint for gVCFs.
      */
@@ -138,16 +153,6 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     @VisibleForTesting
     static String formattedValue(double rms) {
         return String.format("%.2f", rms);
-    }
-
-    @Override
-    public List<String> getKeyNames() {
-        return Arrays.asList(VCFConstants.RMS_MAPPING_QUALITY_KEY, getRawKeyName());
-    }
-
-    @Override
-    public List<VCFInfoHeaderLine> getDescriptions() {
-        return Arrays.asList(VCFStandardHeaderLines.getInfoLine(getKeyNames().get(0)), GATKVCFHeaderLines.getInfoLine(getRawKeyName()));
     }
 
     /**
