@@ -47,11 +47,11 @@ public class StructuralVariationDiscoveryArgumentCollection implements Serializa
 
         @Argument(doc = "Minimum weight of the corroborating read evidence to validate some single piece of evidence.",
                 fullName = "minEvidenceCount")
-        public int minEvidenceWeight = 236; // was 15
+        public int minEvidenceWeight = 15;
 
         @Argument(doc = "Minimum weight of the evidence that shares a distal target locus to validate the evidence.",
                 fullName = "minCoherentEvidenceCount")
-        public int minCoherentEvidenceWeight = 103; // was 7
+        public int minCoherentEvidenceWeight = 7;
 
         @Argument(doc = "Minimum number of localizing kmers in a valid interval.", fullName="minKmersPerInterval")
         public int minKmersPerInterval = 20;

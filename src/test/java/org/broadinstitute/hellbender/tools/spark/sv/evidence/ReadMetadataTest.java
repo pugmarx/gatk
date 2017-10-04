@@ -30,7 +30,8 @@ public class ReadMetadataTest extends BaseTest {
         final Set<Integer> crossContigIgnoreSet = new HashSet<>(3);
         crossContigIgnoreSet.add(1);
         final ReadMetadata readMetadata =
-                new ReadMetadata(crossContigIgnoreSet, header, LIBRARY_STATISTICS, null, 1L, 1L, 1);
+                new ReadMetadata(crossContigIgnoreSet, header, LIBRARY_STATISTICS, new ReadMetadata.PartitionBounds[0],
+                                1L, 1L, 1);
         Assert.assertEquals(readMetadata.getContigID(chr1Name), 0);
         Assert.assertEquals(readMetadata.getContigID(chr2Name), 1);
         Assert.assertFalse(readMetadata.ignoreCrossContigID(0));
