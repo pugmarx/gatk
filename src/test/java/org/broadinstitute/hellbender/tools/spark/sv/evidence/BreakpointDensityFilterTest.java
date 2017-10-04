@@ -30,7 +30,7 @@ public class BreakpointDensityFilterTest extends BaseTest {
         partitionBounds[2] = new ReadMetadata.PartitionBounds(0, 20001, 0, 30000);
         return new ReadMetadata(Collections.emptySet(), artificialSamHeader,
                                 new LibraryStatistics(IntHistogramTest.genLogNormalSample(350, 40, 10000).getCDF(),
-                                        60000000000L, 600000000L, 3000000000L),
+                                        60000000000L, 600000000L, 1200000000000L, 3000000000L),
                                 partitionBounds, 100, 10, 30);
     }
 

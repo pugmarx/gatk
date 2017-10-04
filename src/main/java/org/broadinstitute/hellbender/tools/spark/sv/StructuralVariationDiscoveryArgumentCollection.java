@@ -60,16 +60,10 @@ public class StructuralVariationDiscoveryArgumentCollection implements Serializa
         public int cleanerMaxIntervals = 3;
 
         @Argument(doc = "KmerCleaner minimum kmer count.", fullName = "cleanerMinKmerCount")
-        public int cleanerMinKmerCount = 3;
+        public int cleanerMinKmerCount = 4;
 
-        @Argument(doc = "KmerCleaner maximum kmer count.", fullName = "cleanerMaxKmerCount")
-        public int cleanerMaxKmerCount = 125;
-
-        @Argument(doc = "KmerCleaner unique error-free kmers per partition", fullName = "cleanerKmersPerPartitionGuess")
-        public int cleanerKmersPerPartitionGuess = 600000;
-
-        @Argument(doc = "Maximum number of templates containing an assembly kmer.", fullName = "maxQNamesPerKmer")
-        public int maxQNamesPerKmer = 500;
+        @Argument(doc = "KmerCleaner maximum kmer count as a multiple of coverage.", fullName = "cleanerMaxKmerCount")
+        public int cleanerMaxCopyNumber = 4;
 
         @Argument(doc = "Guess at the ratio of reads in the final assembly to the number reads mapped to the interval.",
                 fullName = "assemblyToMappedSizeRatioGuess")

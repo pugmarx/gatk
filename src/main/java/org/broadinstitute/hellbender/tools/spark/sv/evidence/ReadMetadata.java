@@ -8,6 +8,7 @@ import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMSequenceRecord;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVUtils;
@@ -36,16 +37,19 @@ public class ReadMetadata {
     private final long nReads;
     private final long nRefBases;
     private final long maxReadsInPartition;
-    private final int coverage;
+    private final float coverage;
+    private final float meanBaseQuality;
     private final PartitionBounds[] partitionBounds;
     private final Map<String, LibraryStatistics> libraryToFragmentStatistics;
-    private final static String NO_GROUP = "NoGroup";
+    private static final String NO_GROUP = "NoGroup";
+    private static final float MIN_COVERAGE = 10.f;
 
     public ReadMetadata( final Set<Integer> crossContigIgnoreSet,
                          final SAMFileHeader header,
                          final int maxTrackedFragmentLength,
                          final JavaRDD<GATKRead> unfilteredReads,
-                         final SVReadFilter filter ) {
+                         final SVReadFilter filter,
+                         final Logger logger ) {
         this.crossContigIgnoreSet = crossContigIgnoreSet;
         contigNameToID = buildContigNameToIDMap(header);
         contigIDToName = buildContigIDToNameArray(contigNameToID);
@@ -78,7 +82,15 @@ public class ReadMetadata {
         final long nReadBases = combinedMaps.values().stream().mapToLong(LibraryRawStatistics::getNBases).sum();
         nRefBases = header.getSequenceDictionary().getSequences()
                 .stream().mapToLong(SAMSequenceRecord::getSequenceLength).sum();
-        coverage = (int)((nReadBases + nRefBases/2) / nRefBases); // rounding the coverage number
+        float cov = (float)nReadBases / nRefBases;
+        if ( cov >= MIN_COVERAGE ) coverage = cov;
+        else {
+            logger.warn("Apparent coverage (" + cov + ") too low.  Pretending it's 10x.");
+            coverage = MIN_COVERAGE;
+        }
+        final long totalBaseQuals =
+                combinedMaps.values().stream().mapToLong(LibraryRawStatistics::getTotalBaseQuality).sum();
+        meanBaseQuality = (float)totalBaseQuals / nReadBases;
         libraryToFragmentStatistics = new HashMap<>(SVUtils.hashMapCapacity(combinedMaps.size()));
         combinedMaps.forEach( (libName, rawStats) ->
                 libraryToFragmentStatistics.put(libName,rawStats.createLibraryStatistics(nRefBases)));
@@ -98,6 +110,7 @@ public class ReadMetadata {
                 .stream().mapToLong(SAMSequenceRecord::getSequenceLength).sum();
         this.maxReadsInPartition = maxReadsInPartition;
         this.coverage = coverage;
+        meanBaseQuality = 30.f;
         this.partitionBounds = partitionBounds;
         libraryToFragmentStatistics = new HashMap<>(6);
         libraryToFragmentStatistics.put(null, stats);
@@ -133,7 +146,8 @@ public class ReadMetadata {
         nReads = input.readLong();
         nRefBases = input.readLong();
         maxReadsInPartition = input.readLong();
-        coverage = input.readInt();
+        coverage = input.readFloat();
+        meanBaseQuality = input.readFloat();
 
         final int nPartitions = input.readInt();
         partitionBounds = new PartitionBounds[nPartitions];
@@ -174,7 +188,8 @@ public class ReadMetadata {
         output.writeLong(nReads);
         output.writeLong(nRefBases);
         output.writeLong(maxReadsInPartition);
-        output.writeInt(coverage);
+        output.writeFloat(coverage);
+        output.writeFloat(meanBaseQuality);
 
         output.writeInt(partitionBounds.length);
         final PartitionBounds.Serializer boundsSerializer = new PartitionBounds.Serializer();
@@ -222,10 +237,6 @@ public class ReadMetadata {
         return getFragmentLengthStatistics(readGroup).getZishScore(fragmentSize);
     }
 
-    public int getGroupMedianFragmentSize( final String readGroup ) {
-        return getFragmentLengthStatistics(readGroup).getMedian();
-    }
-
     @VisibleForTesting
     LibraryStatistics getFragmentLengthStatistics( final String readGroup ) {
         return libraryToFragmentStatistics.get(getLibraryName(readGroup));
@@ -238,9 +249,15 @@ public class ReadMetadata {
     @VisibleForTesting PartitionBounds[] getAllPartitionBounds() { return partitionBounds; }
 
     public long getMaxReadsInPartition() { return maxReadsInPartition; }
-
-    public int getCoverage() {
+    public float getCoverage() {
         return coverage;
+    }
+    public float getMeanBaseQuality() { return meanBaseQuality; }
+    public float getAccurateKmerCoverage( final int kSize ) {
+        // i.e., p = (1 - 10**(-Q/10))**K
+        final float probabilityOfAnAccurateKmer =
+                (float)Math.exp(kSize * Math.log1p(-Math.pow(10.,meanBaseQuality/-10.)));
+        return coverage * probabilityOfAnAccurateKmer;
     }
 
     public Map<String, LibraryStatistics> getAllLibraryStatistics() { return libraryToFragmentStatistics; }
@@ -285,7 +302,7 @@ public class ReadMetadata {
     }
 
     public static String[] buildContigIDToNameArray( final Map<String, Integer> nameToIDMap ) {
-        String[] result = new String[nameToIDMap.size()];
+        final String[] result = new String[nameToIDMap.size()];
         for ( final Map.Entry<String, Integer> entry : nameToIDMap.entrySet() ) {
             result[entry.getValue()] = entry.getKey();
         }
@@ -310,6 +327,8 @@ public class ReadMetadata {
             writer.write("#partitions:\t" + readMetadata.getNPartitions() + "\n");
             writer.write("max reads/partition:\t" + readMetadata.getMaxReadsInPartition() + "\n");
             writer.write("coverage:\t" + readMetadata.getCoverage() + "\n");
+            writer.write( "meanQ:\t" + readMetadata.getMeanBaseQuality() + "\n");
+            writer.write("\nLibrary Statistics\n");
             for ( final Map.Entry<String, LibraryStatistics> entry :
                     readMetadata.getAllLibraryStatistics().entrySet() ) {
                 final LibraryStatistics stats = entry.getValue();
@@ -318,8 +337,9 @@ public class ReadMetadata {
                     name = NO_GROUP;
                 }
                 final int median = stats.getMedian();
-                writer.write("library " + name + ":\t" + median + "-" + stats.getNegativeMAD() +
+                writer.write(name + ":\t" + median + "-" + stats.getNegativeMAD() +
                                 "+" + stats.getPositiveMAD() + "\t" + stats.getCoverage() + "\t" +
+                                stats.getMeanBaseQuality() + "\t" +
                                 stats.getNReads() + "\t" + stats.getReadStartFrequency() + "\n");
             }
             final PartitionBounds[] partitionBounds = readMetadata.partitionBounds;
@@ -351,6 +371,7 @@ public class ReadMetadata {
         private final IntHistogram fragmentSizes;
         private long nReads;
         private long nBases;
+        private long totalBaseQuality;
 
         public LibraryRawStatistics( final int maxTrackedValue ) {
             fragmentSizes = new IntHistogram(maxTrackedValue);
@@ -361,17 +382,20 @@ public class ReadMetadata {
             fragmentSizes = new IntHistogram.Serializer().read(kryo, input, IntHistogram.class);
             nReads = input.readLong();
             nBases = input.readLong();
+            totalBaseQuality = input.readLong();
         }
 
         private void serialize( final Kryo kryo, final Output output ) {
             new IntHistogram.Serializer().write(kryo, output, fragmentSizes);
             output.writeLong(nReads);
             output.writeLong(nBases);
+            output.writeLong(totalBaseQuality);
         }
 
-        public void addRead( final int readLength, final int templateLength, final boolean isTemplateLengthTestable ) {
+        public void addRead( final int readLength, final int summedQuals, final int templateLength, final boolean isTemplateLengthTestable ) {
             nReads += 1;
             nBases += readLength;
+            totalBaseQuality += summedQuals;
             if ( isTemplateLengthTestable ) {
                 fragmentSizes.addObservation(Math.abs(templateLength));
             }
@@ -379,9 +403,10 @@ public class ReadMetadata {
 
         public long getNReads() { return nReads; }
         public long getNBases() { return nBases; }
+        public long getTotalBaseQuality() { return totalBaseQuality; }
 
         public LibraryStatistics createLibraryStatistics( final long nRefBases ) {
-            return new LibraryStatistics(fragmentSizes.getCDF(), nBases, nReads, nRefBases);
+            return new LibraryStatistics(fragmentSizes.getCDF(), nBases, nReads, totalBaseQuality, nRefBases);
         }
 
         // assumes that the BAM partitioning has no overlap --
@@ -391,6 +416,7 @@ public class ReadMetadata {
             stats1.fragmentSizes.addObservations(stats2.fragmentSizes);
             stats1.nBases += stats2.nBases;
             stats1.nReads += stats2.nReads;
+            stats1.totalBaseQuality += stats2.totalBaseQuality;
             return stats1;
         }
 
@@ -422,7 +448,7 @@ public class ReadMetadata {
                                     final SVReadFilter filter,
                                     final int maxTrackedFragmentLength,
                                     final Map<String, String> readGroupToLibraryMap ) {
-            Iterator<GATKRead> mappedReadItr = filter.applyFilter(unfilteredReadItr, SVReadFilter::isMappedPrimary);
+            final Iterator<GATKRead> mappedReadItr = filter.applyFilter(unfilteredReadItr, SVReadFilter::isMappedPrimary);
             libraryNameToStatisticsMap = new HashMap<>();
             if ( !mappedReadItr.hasNext() ) {
                 firstContig = lastContig = null;
@@ -435,9 +461,13 @@ public class ReadMetadata {
             while ( true ) {
                 final String libraryName = readGroupToLibraryMap.get(mappedRead.getReadGroup());
                 final boolean isTestable = filter.isTemplateLenTestable(mappedRead);
+                int summedQuals = 0;
+                for ( final byte qual : mappedRead.getBaseQualities() ) {
+                    summedQuals += qual;
+                }
                 libraryNameToStatisticsMap
                         .computeIfAbsent(libraryName, key -> new LibraryRawStatistics(maxTrackedFragmentLength))
-                        .addRead(SVUtils.matchLen(mappedRead.getCigar()), mappedRead.getFragmentLength(), isTestable);
+                        .addRead(SVUtils.matchLen(mappedRead.getCigar()), summedQuals, mappedRead.getFragmentLength(), isTestable);
                 if ( !mappedReadItr.hasNext() ) break;
                 mappedRead = mappedReadItr.next();
             }

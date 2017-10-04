@@ -45,7 +45,7 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
     private final ReadMetadata readMetadataExpected =
             new ReadMetadata(Collections.emptySet(), header,
                                 new LibraryStatistics(new IntHistogram.CDF(IntHistogramTest.genLogNormalSample(320, 129, 10000)),
-                                        60000000000L, 600000000L, 3000000000L),
+                                        60000000000L, 600000000L, 1200000000000L, 3000000000L),
                 new ReadMetadata.PartitionBounds[]{ new ReadMetadata.PartitionBounds(0, 0, 1, 10000)}, 100, 10, 30);
     private final Broadcast<ReadMetadata> broadcastMetadata = ctx.broadcast(readMetadataExpected);
     private final List<List<BreakpointEvidence>> externalEvidence =
@@ -89,7 +89,8 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
         // an empty qname map should produce a "too few kmers" disposition for the interval
         final List<AlignedAssemblyOrExcuse> alignedAssemblyOrExcuseList =
                 FindBreakpointEvidenceSpark.getKmerIntervals(
-                        params, ctx, qNameMultiMap, 1, Collections.emptySet(), reads, filter)._1();
+                        params, readMetadataExpected, ctx, qNameMultiMap, 1,
+                        Collections.emptySet(), reads, filter, logger)._1();
         Assert.assertEquals(alignedAssemblyOrExcuseList.size(), 1);
         Assert.assertTrue(alignedAssemblyOrExcuseList.get(0).getErrorMessage().contains("too few"));
 
@@ -98,8 +99,8 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
                 .forEach(qNameMultiMap::add);
         final HopscotchUniqueMultiMap<SVKmer, Integer, KmerAndInterval> actualKmerAndIntervalSet =
                 new HopscotchUniqueMultiMap<>(
-                        FindBreakpointEvidenceSpark.getKmerIntervals(params, ctx, qNameMultiMap, 1, new HopscotchSet<>(0),
-                                reads, filter)._2());
+                        FindBreakpointEvidenceSpark.getKmerIntervals(params, readMetadataExpected, ctx, qNameMultiMap, 1, new HopscotchSet<>(0),
+                                reads, filter, logger)._2());
         final Set<SVKmer> actualKmers = new HashSet<SVKmer>(SVUtils.hashMapCapacity(actualKmerAndIntervalSet.size()));
         for ( final KmerAndInterval kmerAndInterval : actualKmerAndIntervalSet ) {
             actualKmers.add(kmerAndInterval.getKey());
@@ -184,16 +185,19 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
             } catch (final RuntimeException ex) {
                 throw ex;
             }
-            try (final BufferedReader actualReader = new BufferedReader(new FileReader(outputFile));
-                 final BufferedReader expectedReader = new BufferedReader(new FileReader(expectedFastqFilePrefix + intervalAndFastqBytes._1()))){
-                final List<String> actualLines = actualReader.lines().collect(Collectors.toList());
-                final List<String> expectedLines = expectedReader.lines().collect(Collectors.toList());
-                Assert.assertEquals(actualLines.size(), expectedLines.size(), "different number of lines");
-                for (int i = 0; i < actualLines.size(); i++) {
-                    Assert.assertEquals(actualLines.get(i), expectedLines.get(i), "difference in fastq line " + (i + 1));
+
+            try ( final BufferedReader actualReader = new BufferedReader(new FileReader(outputFile)) ) {
+                try ( final BufferedReader expectedReader =
+                         new BufferedReader(new FileReader(expectedFastqFilePrefix + intervalAndFastqBytes._1())) ) {
+                    final List<String> actualLines = actualReader.lines().collect(Collectors.toList());
+                    final List<String> expectedLines = expectedReader.lines().collect(Collectors.toList());
+                    Assert.assertEquals(actualLines.size(), expectedLines.size(), "different number of lines");
+                    for (int i = 0; i < actualLines.size(); i++) {
+                        Assert.assertEquals(actualLines.get(i), expectedLines.get(i), "difference in fastq line " + (i + 1));
+                    }
                 }
             } catch (final IOException ex) {
-                throw new GATKException("test problems", ex);
+                throw new GATKException("test problems 2", ex);
             } finally {
                 try { outputFile.delete(); } catch (final Throwable t) {};
             }
