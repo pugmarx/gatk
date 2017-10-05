@@ -84,7 +84,7 @@ public final class AS_RMSMappingQuality extends InfoFieldAnnotation implements A
     }
 
     /**
-     * For for AS_RMSMappingQuality annotations, the annotations will simply consist of a list of the total value for
+     * For AS_RMSMappingQuality annotations, the annotations will simply consist of a list of the total value for
      * every allele computed by parsing all of the individual AS_RMSMappingQuality Raw Key values as doubles
      * and totaling them.
      */

@@ -353,8 +353,8 @@ public class ReferenceConfidenceVariantContextMerger {
         for ( final Map.Entry<String, Object> p : vcPair.getVc().getAttributes().entrySet() ) {
             final String key = p.getKey();
 
-            // If the key corresponds to a requested reducible key, store ReducibleAnnotationData
-            if (annotatorEngine.isRequestedReducibleRawKey(key)) {//TODO figure out how to signal the annotaions here
+            // If the key corresponds to a requested reducible key, store the data as AlleleSpecificAnnotationData
+            if (annotatorEngine.isRequestedReducibleRawKey(key)) {
                 final List<Object> valueList = vcPair.getVc().getAttributeAsList(key);
 
                 List<ReducibleAnnotationData<?>> values = (List<ReducibleAnnotationData<?>>)(List<?>) annotationMap.get(key);

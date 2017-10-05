@@ -54,8 +54,8 @@ public abstract class AS_StrandBiasTest extends StrandBiasTest implements Reduci
 
 
     /**
-     * Uses teh ReadLikliehoods to generate a 2x2 strand contingency table accounting for the ammount of reads which
-     * support each allele in the forwards and reverse direction.
+     * Uses the ReadLikelihoods map to generate a 2x2 strand contingency table by counting the total read support for each
+     * allele in either the forward or reverse direction.
      *
      * @param ref the reference context for this annotation
      * @param vc the variant context to annotate

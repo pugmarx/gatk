@@ -2,11 +2,14 @@ package org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific;
 
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.TextCigarCodec;
-import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.*;
 import org.broadinstitute.hellbender.engine.FeatureDataSource;
+import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.ArtificialAnnotationUtils;
 import org.broadinstitute.hellbender.tools.walkers.annotator.ReadPosRankSumTest;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
+import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
 import org.broadinstitute.hellbender.utils.read.ArtificialReadUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
@@ -17,9 +20,34 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class AS_ReadPosRankSumTestUnitTest extends ReducibleAnnotationBaseTest {
+    private final String sample1 = "NA1";
+    private final String sample2 = "NA2";
+    private static final String CONTIG = "1";
+
+    private static final Allele REF = Allele.create("T", true);
+    private static final Allele ALT = Allele.create("A", false);
+
+    private VariantContext makeVC(final long position) {
+        final double[] genotypeLikelihoods1 = {30,0,190};
+        final GenotypesContext testGC = GenotypesContext.create(2);
+        // sample1 -> A/T with GQ 30
+        testGC.add(new GenotypeBuilder(sample1).alleles(Arrays.asList(REF, ALT)).PL(genotypeLikelihoods1).GQ(30).make());
+
+        return (new VariantContextBuilder())
+                .alleles(Arrays.asList(REF, ALT)).chr(CONTIG).start(position).stop(position).genotypes(testGC).make();
+    }
+
+    private GATKRead makeRead(final int start, final int mq) {
+        Cigar cigar = TextCigarCodec.decode("10M");
+        final GATKRead read = ArtificialReadUtils.createArtificialRead(cigar);
+        read.setMappingQuality(mq);
+        read.setPosition(CONTIG, start);
+        return read;
+    }
 
     @DataProvider(name = "dataIsUsableRead")
     private Object[][] dataIsUsableRead(){
@@ -44,6 +72,57 @@ public class AS_ReadPosRankSumTestUnitTest extends ReducibleAnnotationBaseTest {
         read.setMappingQuality(mappingQuality);
         read.setPosition("1", start);
         Assert.assertEquals(as_readPosRankSumTest.isUsableRead(read, refLoc), isUsable);
+    }
+
+    @Test  //To be consistent with annotate raw data now produces the the ranksum, making this test incorrect
+    public void testReadPos_Raw(){
+        final AS_RankSumTest ann= new AS_ReadPosRankSumTest();
+        final String key1 = GATKVCFConstants.AS_RAW_READ_POS_RANK_SUM_KEY;
+        final String key2 = GATKVCFConstants.AS_READ_POS_RANK_SUM_KEY;
+        final int[] startAlts = {3, 4};
+        final int[] startRefs = {1, 2};
+        final int readLength = 10;
+
+        final List<GATKRead> refReads = Arrays.asList(makeRead(startRefs[0], 30), makeRead(startRefs[1], 30));
+        final List<GATKRead> altReads = Arrays.asList(makeRead(startAlts[0], 30), makeRead(startAlts[1], 30));
+        final ReadLikelihoods<Allele> likelihoods =
+                ArtificialAnnotationUtils.makeLikelihoods(sample1, refReads, altReads, -100.0, -100.0, REF, ALT);
+
+        Assert.assertEquals(ann.getDescriptions().size(), 1);
+        Assert.assertEquals(ann.getDescriptions().get(0).getID(), key2);
+        Assert.assertEquals(ann.getKeyNames().size(), 1);
+        Assert.assertEquals(ann.getKeyNames().get(0), key2);
+
+        final ReferenceContext ref= null;
+
+        final long position = 5L;  //middle of the read
+        final VariantContext vc= makeVC(position);
+
+        final Map<String, Object> annotateRaw = ann.annotateRawData(ref, vc, likelihoods);
+        final Map<String, Object> annotateNonRaw = ann.annotate(ref, vc, likelihoods);
+        final String expected = startAlts[0] + ",1," + startAlts[1] + ",1" + AS_RankSumTest.PRINT_DELIM + startRefs[0] + ",1," + startRefs[1] + ",1";
+        Assert.assertEquals(annotateRaw.get(key1), expected);
+        Assert.assertEquals(annotateNonRaw.get(key1), expected);
+
+        final long positionEnd = 8L;  //past middle
+        final VariantContext vcEnd= makeVC(positionEnd);
+
+        //Note: past the middle of the read we compute the position from the end.
+        final Map<String, Object> annotateEndRaw = ann.annotateRawData(ref, vcEnd, likelihoods);
+        final Map<String, Object> annotateEndNonRaw = ann.annotate(ref, vcEnd, likelihoods);
+        final String refS = (startRefs[0]+readLength-positionEnd-1)+ ",1," +(startRefs[1]+readLength-positionEnd-1) + ",1";
+        final String altS = (positionEnd-startAlts[1]) + ",1," + (positionEnd-startAlts[0]) + ",1";
+        Assert.assertEquals(annotateEndRaw.get(key1), refS + AS_RankSumTest.PRINT_DELIM + altS );
+        Assert.assertEquals(annotateEndNonRaw.get(key1), refS + AS_RankSumTest.PRINT_DELIM + altS );
+
+        final long positionPastEnd = 20L;  //past middle
+        final VariantContext vcPastEnd= makeVC(positionPastEnd);
+
+        //Note: past the end of the read, there's nothing
+        final Map<String, Object> annotatePastEndRaw = ann.annotateRawData(ref, vcPastEnd, likelihoods);
+        final Map<String, Object> annotatePastEndNonRaw = ann.annotate(ref, vcPastEnd, likelihoods);
+        Assert.assertTrue(annotatePastEndRaw.isEmpty());
+        Assert.assertTrue(annotatePastEndNonRaw.isEmpty());
     }
 
     @Override

@@ -78,10 +78,12 @@ public final class VariantAnnotatorEngineUnitTest extends BaseTest {
         final Genotype genotype = new  GenotypeBuilder("sample2", Arrays.asList(refAllele, altAllele))
                 .AD(new int[]{8,9}).make();
 
-        final VariantContext vc = new VariantContextBuilder(ArtificialAnnotationUtils.makeVC()).attribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY, "285.00|385.00").genotypes(genotype).make();
+        final VariantContext vc = new VariantContextBuilder(ArtificialAnnotationUtils.makeVC()).attribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY, "285.00|385.00").attribute(GATKVCFConstants.ALLELE_BALANCE_KEY, "10").genotypes(genotype).make();
         final VariantContext result = vae.finalizeAnnotations(vc, vc);
         Assert.assertNull(result.getAttribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY));
         Assert.assertNotNull(result.getAttribute(GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY));
+        Assert.assertNotNull(result.getAttribute(GATKVCFConstants.ALLELE_BALANCE_KEY));
+        Assert.assertEquals(result.getAttribute(GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY), "6.54");
     }
 
 

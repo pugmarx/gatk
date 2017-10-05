@@ -195,7 +195,6 @@ public final class RMSMappingQualityUnitTest {
     }
 
     @Test
-    // NOTE: this test enforces the decision for the MQ test to only take into account the first value
     public void testFinalizeRawData(){
         final VariantContext vc = new VariantContextBuilder(makeVC())
                 .attribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY, "2000,100,20")
@@ -301,10 +300,10 @@ public final class RMSMappingQualityUnitTest {
         final List<GATKRead> altReads = IntStream.range(0, 10).mapToObj(i -> ArtificialAnnotationUtils.makeRead(30, 5)).collect(Collectors.toList());
         final ReadLikelihoods<Allele> likelihoods = ArtificialAnnotationUtils.makeLikelihoods("sample1", refReads, altReads, -100, -100 ,refAllele, altAllele);
 
-        // Testing the likelyhoods map
+        // Testing the likelihoods map
         Assert.assertEquals(RMSMappingQuality.getNumOfReads(vc, likelihoods), 15);
 
-        // Testing that unavailible mapping quality gets filtered out
+        // Testing that unavailable mapping quality gets filtered out
         altReads.get(0).setMappingQuality(QualityUtils.MAPPING_QUALITY_UNAVAILABLE);
         Assert.assertEquals(RMSMappingQuality.getNumOfReads(vc, likelihoods), 14);
     }

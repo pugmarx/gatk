@@ -150,7 +150,8 @@ public final class GenotypeGVCFs extends VariantWalker {
 
         annotationEngine = VariantAnnotatorEngine.ofSelectedMinusExcluded(variantAnnotationArgumentCollection, dbsnp.dbsnp, Collections.emptyList());
 
-        genotypingEngine = new MinimalGenotypingEngine(createUAC(), samples, new GeneralPloidyFailOverAFCalculatorProvider(genotypeArgs), annotationEngine.isRequestedReducibleRawKey(GATKVCFConstants.AS_QUAL_KEY)); // We only want the engine to generate the AS_QUOL key if we are using reducible annotations.
+        // We only want the engine to generate the AS_QUAL key if we are using AlleleSpecific annotations.
+        genotypingEngine = new MinimalGenotypingEngine(createUAC(), samples, new GeneralPloidyFailOverAFCalculatorProvider(genotypeArgs), annotationEngine.isRequestedReducibleRawKey(GATKVCFConstants.AS_QUAL_KEY));
 
         merger = new ReferenceConfidenceVariantContextMerger(annotationEngine);
 

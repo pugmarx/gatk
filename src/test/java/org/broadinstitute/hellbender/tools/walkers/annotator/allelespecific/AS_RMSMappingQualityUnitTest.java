@@ -43,15 +43,22 @@ public class AS_RMSMappingQualityUnitTest extends ReducibleAnnotationBaseTest {
         final List<FeatureInput<VariantContext>> features = Collections.emptyList();
         final VariantAnnotatorEngine vae = VariantAnnotatorEngine.ofSelectedMinusExcluded(annotationGroupsToUse, annotationsToUse, annotationsToExclude, dbSNPBinding, features);
         final Allele refAllele = Allele.create("A", true);
-        final Allele altAllele = Allele.create("T");
-        final Genotype genotype = new GenotypeBuilder("sample2", Arrays.asList(refAllele, altAllele))
-                .AD(new int[]{8,9}).make();
+        final Allele altAllele1 = Allele.create("T");
+        final Allele altAllele2 = Allele.create("C");
+        final Genotype genotype = new GenotypeBuilder("sample2", Arrays.asList(refAllele, altAllele1, altAllele2))
+                .AD(new int[]{2,80,9}).make();
 
-        final VariantContext vc = new VariantContextBuilder(ArtificialAnnotationUtils.makeVC()).attribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY, "285.00|385.00").genotypes(genotype).make();
+        final VariantContext vc = new VariantContextBuilder(new VariantContextBuilder())
+                .alleles(Arrays.asList(refAllele, altAllele1, altAllele2))
+                .chr("1").start(15L).stop(15L)
+                .attribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY, "400.00|285.00|385.00")
+                .genotypes(genotype)
+                .make();
         final VariantContext result = vae.finalizeAnnotations(vc, vc);
         Assert.assertNull(result.getAttribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY));
         Assert.assertNotNull(result.getAttribute(GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY));
-        Assert.assertEquals(1,1);
+//        Math.sqrt((double) perAlleleValues.get(current) / variantADs.get(current)
+        Assert.assertEquals(result.getAttribute(GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY),String.format("%.2f",Math.sqrt(285.00/80)) + "," + String.format("%.2f",Math.sqrt(385.00/9)));
     }
 
 }
