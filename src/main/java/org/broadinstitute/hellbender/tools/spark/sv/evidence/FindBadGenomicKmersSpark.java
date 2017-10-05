@@ -87,7 +87,7 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
                                              final ReferenceMultiSource ref,
                                              final SAMSequenceDictionary readsDict ) {
         // Generate reference sequence RDD.
-        final JavaRDD<byte[]> refRDD = SVUtils.getRefRDD(ctx, kSize, ref, null, readsDict,
+        final JavaRDD<byte[]> refRDD = SVUtils.getRefRDD(ctx, kSize, ref, readsDict,
                                                                 REF_RECORD_LEN, REF_RECORDS_PER_PARTITION);
 
         // Find the high copy number kmers

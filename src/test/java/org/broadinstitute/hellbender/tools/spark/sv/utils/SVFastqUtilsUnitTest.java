@@ -14,6 +14,7 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.AlignmentInterval;
 import org.broadinstitute.hellbender.utils.RandomDNA;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
 import org.broadinstitute.hellbender.utils.read.SAMRecordToGATKReadAdapter;
+import org.broadinstitute.hellbender.utils.test.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -29,7 +30,7 @@ import java.util.stream.IntStream;
 /**
  * Unit tests for components in {@link SVFastqUtils}.
  */
-public class SVFastqUtilsUnitTest {
+public class SVFastqUtilsUnitTest extends BaseTest {
 
 
     private static final String[] TEST_VALID_CHROMOSOMES = {
@@ -59,7 +60,7 @@ public class SVFastqUtilsUnitTest {
     };
 
 
-    @Test(dataProvider = "mappingFromStringData", dependsOnMethods = "testMappingFromString")
+    @Test(dataProvider = "mappingFromStringData", dependsOnMethods = "testMappingFromString", groups = "sv")
     public void testMappingToString(final String str, final String[] contig, final int[] start,
                                       final boolean[] forward, final Cigar[] cigarAlongRef,
                                       final int[] mappingQual, final int[] mismatches,
@@ -73,7 +74,7 @@ public class SVFastqUtilsUnitTest {
         }
     }
 
-    @Test(dataProvider = "mappingFromStringData")
+    @Test(dataProvider = "mappingFromStringData", groups = "sv")
     public void testMappingFromString(final String str, final String[] contig, final int[] start,
                                       final boolean[] forward, final Cigar[] cigarAlongRef,
                                       final int[] mappingQual, final int[] mismatches,
@@ -82,17 +83,17 @@ public class SVFastqUtilsUnitTest {
         assertMappingIsAsExpected(mapping, contig, start, forward, cigarAlongRef, mappingQual, mismatches, alignmentScores);
     }
 
-    @Test(dataProvider = "mappingFromBadStringData", expectedExceptions = IllegalArgumentException.class)
+    @Test(dataProvider = "mappingFromBadStringData", expectedExceptions = IllegalArgumentException.class, groups = "sv")
     public void testMappingFromBadString(final String str) {
         new SVFastqUtils.Mapping(str);
     }
 
-    @Test
+    @Test(groups = "sv")
     public void testUnmappedFromString() {
         assertUnmapped(new SVFastqUtils.Mapping("*"));
     }
 
-    @Test(expectedExceptions = GATKException.class)
+    @Test(expectedExceptions = GATKException.class, groups = "sv")
     public void testNonPrimaryAlignmentReadWithoutSA() {
         final SAMFileHeader header;
         final SAMRecord samRecord;
@@ -117,7 +118,7 @@ public class SVFastqUtilsUnitTest {
         new SVFastqUtils.Mapping(read);
     }
 
-    @Test(expectedExceptions = GATKException.class)
+    @Test(expectedExceptions = GATKException.class, groups = "sv")
     public void testNonPrimaryAlignmentWithSAWhereFirstElementHasHardclips() {
         final SAMFileHeader header;
         final SAMRecord samRecord;
@@ -143,7 +144,7 @@ public class SVFastqUtilsUnitTest {
         new SVFastqUtils.Mapping(read);
     }
 
-    @Test(expectedExceptions = GATKException.class)
+    @Test(expectedExceptions = GATKException.class, groups = "sv")
     public void testPrimaryAlignmentWithHardClips() {
         final SAMFileHeader header;
         final SAMRecord samRecord;
@@ -169,7 +170,7 @@ public class SVFastqUtilsUnitTest {
         new SVFastqUtils.Mapping(read);
     }
 
-    @Test
+    @Test(groups = "sv")
     public void testNonPrimaryAlignmentReadWithSA() {
         final SAMFileHeader header;
         final SAMRecord samRecord;
@@ -196,7 +197,7 @@ public class SVFastqUtilsUnitTest {
                 new int[] {20, AlignmentInterval.NO_AS});
     }
 
-    @Test
+    @Test(groups = "sv")
     public void testUnmappedFromGATKRead() {
         final SAMFileHeader header = new SAMFileHeader(
                 new SAMSequenceDictionary(Collections.singletonList(
@@ -209,7 +210,7 @@ public class SVFastqUtilsUnitTest {
         Assert.assertEquals(SVFastqUtils.Mapping.toString(read), "*");
     }
 
-    @Test
+    @Test(groups = "sv")
     public void testUnmappedFromFastqRead() {
         final byte[] bases = new byte[100];
         final byte[] quals = new byte[100];
@@ -233,7 +234,7 @@ public class SVFastqUtilsUnitTest {
         Assert.assertEquals(mapping.toString(), "*");
     }
 
-    @Test(dataProvider = "mappingFromGATKReadData")
+    @Test(dataProvider = "mappingFromGATKReadData", groups = "sv")
     public void testMappingFromGATKRead(final GATKRead read, final String[] contig, final int[] start,
                                         final boolean[] forward, final Cigar[] cigarAlongRef,
                                         final int[] mappingQual, final int[] mismatches,
@@ -242,7 +243,7 @@ public class SVFastqUtilsUnitTest {
         assertMappingIsAsExpected(mapping, contig, start, forward, cigarAlongRef, mappingQual, mismatches, alignmentScores);
     }
 
-    @Test(dataProvider = "mappingFromFastqReadData")
+    @Test(dataProvider = "mappingFromFastqReadData", groups = "sv")
     public void testMappingFromFastqRead(final SVFastqUtils.FastqRead read, final String[] contig, final int[] start,
                                         final boolean[] forward, final Cigar[] cigarAlongRef,
                                         final int[] mappingQual, final int[] mismatches,
@@ -251,7 +252,7 @@ public class SVFastqUtilsUnitTest {
         assertMappingIsAsExpected(mapping, contig, start, forward, cigarAlongRef, mappingQual, mismatches, alignmentScores);
     }
 
-    @Test(dataProvider = "mappingFromGATKReadData", dependsOnMethods = "testMappingFromGATKRead")
+    @Test(dataProvider = "mappingFromGATKReadData", dependsOnMethods = "testMappingFromGATKRead", groups = "sv")
     public void testMappingToStringRead(final GATKRead read, final String[] contig, final int[] start,
                                         final boolean[] forward, final Cigar[] cigarAlongRef,
                                         final int[] mappingQual, final int[] mismatches,

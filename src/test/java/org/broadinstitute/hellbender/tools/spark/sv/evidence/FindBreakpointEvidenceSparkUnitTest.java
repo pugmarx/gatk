@@ -56,14 +56,14 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
     private final Set<String> expectedAssemblyQNames = loadExpectedQNames(asmQNamesFile);
     private final List<SVInterval> expectedIntervalList = Arrays.asList(testIntervals);
 
-    @Test(groups = "spark")
+    @Test(groups = "sv")
     public void getIntervalsTest() {
         final List<SVInterval> actualIntervals =
                 FindBreakpointEvidenceSpark.getIntervalsAndEvidenceTargetLinks(params,broadcastMetadata,broadcastExternalEvidence,header,reads,filter)._1();
         Assert.assertEquals(actualIntervals, expectedIntervalList);
     }
 
-    @Test(groups = "spark")
+    @Test(groups = "sv")
     public void getQNamesTest() {
         final Set<String> actualQNames = new HashSet<>();
         FindBreakpointEvidenceSpark.getQNames(params, ctx, broadcastMetadata, expectedIntervalList, reads, filter)
@@ -73,7 +73,7 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
         Assert.assertEquals(actualQNames, expectedQNames);
     }
 
-    @Test(groups = "spark")
+    @Test(groups = "sv")
     public void getKmerIntervalsTest() {
         final SVKmer kmer = new SVKmerLong(params.kSize);
         final Set<SVKmer> killSet = new HashSet<>();
@@ -108,8 +108,8 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
         Assert.assertEquals(actualKmers, expectedKmers);
     }
 
-    @Test(groups = "spark")
-    public void getAssemblyQNamesTest() throws FileNotFoundException {
+    @Test(groups = "sv")
+    public void getAssemblyQNamesTest() {
         final Set<SVKmer> expectedKmers = SVUtils.readKmersFile(params.kSize, kmersFile, new SVKmerLong(params.kSize));
         final HopscotchUniqueMultiMap<SVKmer, Integer, KmerAndInterval> kmerAndIntervalSet =
                 new HopscotchUniqueMultiMap<>(expectedKmers.size());
@@ -124,7 +124,7 @@ public final class FindBreakpointEvidenceSparkUnitTest extends BaseTest {
         Assert.assertEquals(actualAssemblyQNames, expectedAssemblyQNames);
     }
 
-    @Test(groups = "spark")
+    @Test(groups = "sv")
     public void generateFastqsTest() {
         final HopscotchUniqueMultiMap<String, Integer, QNameAndInterval> qNameMultiMap =
                 new HopscotchUniqueMultiMap<>(expectedAssemblyQNames.size());

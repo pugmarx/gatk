@@ -245,7 +245,7 @@ public class AnnotatedVariantProducerUnitTest extends BaseTest {
         };
     }
 
-    @Test(dataProvider = "CIIntervals")
+    @Test(dataProvider = "CIIntervals", groups = "sv")
     public void testProduceCIInterval(final int point, final SVInterval interval, final String expected, final Exception expectedException) throws Exception {
         if (expectedException == null) {
             Assert.assertEquals(AnnotatedVariantProducer.produceCIInterval(point, interval), expected);

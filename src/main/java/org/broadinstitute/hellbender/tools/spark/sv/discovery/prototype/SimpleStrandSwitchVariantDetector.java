@@ -1,6 +1,5 @@
 package org.broadinstitute.hellbender.tools.spark.sv.discovery.prototype;
 
-import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.*;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -50,9 +49,8 @@ final class SimpleStrandSwitchVariantDetector implements VariantDetectorFromLoca
                         contig -> BreakpointComplications.isLikelyInvertedDuplication(contig.alignmentIntervals.get(0),
                                 contig.alignmentIntervals.get(1)), true);
 
-        final PipelineOptions options = null;
-        final SAMSequenceDictionary referenceSequenceDictionary = new ReferenceMultiSource(options, fastaReference,
-                ReferenceWindowFunctions.IDENTITY_FUNCTION).getReferenceSequenceDictionary(null);
+        final SAMSequenceDictionary referenceSequenceDictionary = new ReferenceMultiSource((com.google.cloud.dataflow.sdk.options.PipelineOptions)null,
+                fastaReference, ReferenceWindowFunctions.IDENTITY_FUNCTION).getReferenceSequenceDictionary(null);
 
         final JavaRDD<VariantContext> simpleStrandSwitchBkpts =
                 dealWithSimpleStrandSwitchBkpts(split._2, broadcastReference, toolLogger);

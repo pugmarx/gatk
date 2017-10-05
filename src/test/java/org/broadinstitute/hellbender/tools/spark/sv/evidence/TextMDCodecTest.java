@@ -7,8 +7,6 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.testng.Assert.*;
-
 public class TextMDCodecTest {
 
     @DataProvider(name = "mdStringProvider")
@@ -21,7 +19,7 @@ public class TextMDCodecTest {
         };
     }
 
-    @Test(dataProvider = "mdStringProvider")
+    @Test(dataProvider = "mdStringProvider", groups = "sv")
     public void testParseMDString(String mdString, List<TextMDCodec.MDElement> expectedElements) throws Exception {
         final List<TextMDCodec.MDElement> actualElements = TextMDCodec.parseMDString(mdString);
         Assert.assertEquals(actualElements.size(), expectedElements.size());

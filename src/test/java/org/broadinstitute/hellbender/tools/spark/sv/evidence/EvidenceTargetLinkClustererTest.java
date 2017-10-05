@@ -7,6 +7,7 @@ import org.broadinstitute.hellbender.tools.spark.utils.IntHistogram;
 import org.broadinstitute.hellbender.utils.IntHistogramTest;
 import org.broadinstitute.hellbender.utils.read.ArtificialReadUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
+import org.broadinstitute.hellbender.utils.test.BaseTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -15,7 +16,7 @@ import java.util.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-public class EvidenceTargetLinkClustererTest {
+public class EvidenceTargetLinkClustererTest extends BaseTest{
     private static final SAMFileHeader artificialSamHeader =
             ArtificialReadUtils.createArtificialSamHeaderWithGroups(2, 1, 1000000, 1);
     private static final ReadMetadata readMetadata = initMetadata();
@@ -77,7 +78,7 @@ public class EvidenceTargetLinkClustererTest {
     }
 
 
-    @Test(dataProvider = "evidence")
+    @Test(dataProvider = "evidence", groups = "sv")
     public void testClusterEvidence(Iterator<BreakpointEvidence> evidenceIterator, Iterator<EvidenceTargetLink> expectedResults) throws Exception {
         EvidenceTargetLinkClusterer clusterer = new EvidenceTargetLinkClusterer(readMetadata, 0);
         final Iterator<EvidenceTargetLink> results = clusterer.cluster(evidenceIterator);

@@ -1,6 +1,5 @@
 package org.broadinstitute.hellbender.tools.spark.sv.discovery;
 
-import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.vcf.VCFConstants;
@@ -18,7 +17,6 @@ import org.broadinstitute.hellbender.tools.spark.sv.utils.StrandedInterval;
 import org.broadinstitute.hellbender.utils.test.BaseTest;
 import org.broadinstitute.hellbender.utils.test.VariantContextTestUtils;
 import org.mockito.Mockito;
-import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -114,15 +112,15 @@ public class DiscoverVariantsFromContigAlignmentsSAMSparkUnitTest extends BaseTe
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "evidenceTargetLinksAndVariants")
+    @Test(dataProvider = "evidenceTargetLinksAndVariants", groups = "sv")
     public void testProcessEvidenceTargetLinks(final List<EvidenceTargetLink> etls,
                                                final List<VariantContext> inputVariants,
-                                               final List<VariantContext> expectedVariants) throws Exception {
+                                               final List<VariantContext> expectedVariants) {
         final StructuralVariationDiscoveryArgumentCollection.DiscoverVariantsFromContigsAlignmentsSparkArgumentCollection params =
                 new StructuralVariationDiscoveryArgumentCollection.DiscoverVariantsFromContigsAlignmentsSparkArgumentCollection();
 
-        final PipelineOptions options = null;
-        final ReferenceMultiSource referenceMultiSource = new ReferenceMultiSource(options, twoBitRefURL, ReferenceWindowFunctions.IDENTITY_FUNCTION);
+        final ReferenceMultiSource referenceMultiSource = new ReferenceMultiSource((com.google.cloud.dataflow.sdk.options.PipelineOptions)null,
+                twoBitRefURL, ReferenceWindowFunctions.IDENTITY_FUNCTION);
 
         ReadMetadata metadata = Mockito.mock(ReadMetadata.class);
         when(metadata.getMaxMedianFragmentSize()).thenReturn(300);

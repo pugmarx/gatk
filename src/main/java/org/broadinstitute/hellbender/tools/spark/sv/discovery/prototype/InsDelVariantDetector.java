@@ -1,6 +1,5 @@
 package org.broadinstitute.hellbender.tools.spark.sv.discovery.prototype;
 
-import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -44,9 +43,8 @@ final class InsDelVariantDetector implements VariantDetectorFromLocalAssemblyCon
                                 noveltyTypeAndEvidence._2._1, null, noveltyTypeAndEvidence._2._2, broadcastReference));
 
 
-        final PipelineOptions pipelineOptions = null;
-        SVVCFWriter.writeVCF(annotatedVariants.collect(), vcfOutputFileName, new ReferenceMultiSource(pipelineOptions, fastaReference,
-                ReferenceWindowFunctions.IDENTITY_FUNCTION).getReferenceSequenceDictionary(null), toolLogger);
+        SVVCFWriter.writeVCF(annotatedVariants.collect(), vcfOutputFileName, new ReferenceMultiSource((com.google.cloud.dataflow.sdk.options.PipelineOptions)null,
+                fastaReference, ReferenceWindowFunctions.IDENTITY_FUNCTION).getReferenceSequenceDictionary(null), toolLogger);
     }
 
     /**

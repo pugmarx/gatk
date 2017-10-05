@@ -3,7 +3,6 @@ package org.broadinstitute.hellbender.tools.spark.sv.evidence;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection;
-import org.broadinstitute.hellbender.tools.spark.sv.evidence.experimental.FindSmallIndelRegions;
 import org.broadinstitute.hellbender.tools.spark.utils.IntHistogram;
 import org.broadinstitute.hellbender.utils.IntHistogramTest;
 import org.broadinstitute.hellbender.utils.read.ArtificialReadUtils;

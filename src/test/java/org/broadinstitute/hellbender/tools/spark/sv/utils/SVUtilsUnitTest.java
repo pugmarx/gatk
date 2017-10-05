@@ -4,12 +4,9 @@ import org.broadinstitute.hellbender.utils.test.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/**
- * Unit tests for SVUtils.
- */
 public class SVUtilsUnitTest extends BaseTest {
 
-    @Test(groups = "spark")
+    @Test(groups = "sv")
     void hashMapCapacityTest() {
         Assert.assertEquals(SVUtils.hashMapCapacity(150),201);
     }

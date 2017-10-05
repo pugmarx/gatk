@@ -63,7 +63,7 @@ public class VariantDetectorFromLongReadAlignmentsForSimpleStrandSwitchUnitTest 
     }
 
     @DataProvider(name = "forCigarExtraction")
-    private Object[][] createTestDataForCigarExtraction() throws IOException {
+    private Object[][] createTestDataForCigarExtraction() {
 
         final List<Object[]> data = new ArrayList<>(20);
 

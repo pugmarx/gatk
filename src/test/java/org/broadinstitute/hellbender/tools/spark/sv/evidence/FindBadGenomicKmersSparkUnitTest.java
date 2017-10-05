@@ -25,8 +25,8 @@ public class FindBadGenomicKmersSparkUnitTest extends BaseTest {
     private static final int KMER_SIZE = StructuralVariationDiscoveryArgumentCollection.FindBreakpointEvidenceSparkArgumentCollection.KMER_SIZE;
     private static final String REFERENCE_FILE_NAME = hg19MiniReference;
 
-    @Test(groups = "spark")
-    public void badKmersTest() throws IOException {
+    @Test(groups = "sv")
+    public void badKmersTest() {
 
         final byte[] polyA = new byte[KMER_SIZE]; Arrays.fill(polyA, (byte)'A');
         final byte[] polyC = new byte[KMER_SIZE]; Arrays.fill(polyC, (byte)'C');
@@ -54,7 +54,7 @@ public class FindBadGenomicKmersSparkUnitTest extends BaseTest {
         Assert.assertEquals(badKmers.get(0), SVKmerizer.toKmer(polyA,new SVKmerLong()));
     }
 
-    @Test(groups = "spark")
+    @Test(groups = "sv")
     public void miniRefTest() throws IOException {
         final JavaSparkContext ctx = SparkContextFactory.getTestSparkContext();
         final ReferenceMultiSource ref = new ReferenceMultiSource((com.google.cloud.dataflow.sdk.options.PipelineOptions)null,
@@ -70,10 +70,7 @@ public class FindBadGenomicKmersSparkUnitTest extends BaseTest {
                     .forEach(kmer -> kmerMap.put(kmer, kmerMap.getOrDefault(kmer, 0L) + 1));
         }
         final Iterator<Map.Entry<SVKmer, Long>> kmerIterator = kmerMap.entrySet().iterator();
-        while ( kmerIterator.hasNext() ) {
-            if ( kmerIterator.next().getValue() <= FindBadGenomicKmersSpark.MAX_KMER_FREQ )
-                kmerIterator.remove();
-        }
+        kmerMap.entrySet().removeIf( x -> x.getValue() <= FindBadGenomicKmersSpark.MAX_KMER_FREQ);
 
         final List<SVKmer> badKmers =
                 FindBadGenomicKmersSpark.findBadGenomicKmers(ctx, KMER_SIZE, Integer.MAX_VALUE, ref, null);

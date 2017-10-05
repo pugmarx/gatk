@@ -10,7 +10,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,7 +41,7 @@ public class DiscoverVariantsFromContigAlignmentsSAMSparkIntegrationTest extends
     }
 
     @DataProvider(name = "discoverVariantsFromContigAlignmentsSparkIntegrationTest")
-    public Object[][] createTestData() throws IOException {
+    public Object[][] createTestData() {
         List<Object[]> tests = new ArrayList<>();
         final File tempDirLeft = BaseTest.createTempDir("forLeft");
         tempDirLeft.deleteOnExit();
