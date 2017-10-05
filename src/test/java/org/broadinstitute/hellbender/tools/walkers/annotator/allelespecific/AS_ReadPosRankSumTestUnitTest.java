@@ -7,6 +7,7 @@ import org.broadinstitute.hellbender.engine.FeatureDataSource;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
 import org.broadinstitute.hellbender.tools.walkers.annotator.ArtificialAnnotationUtils;
 import org.broadinstitute.hellbender.tools.walkers.annotator.ReadPosRankSumTest;
+import org.broadinstitute.hellbender.utils.MannWhitneyU;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
@@ -100,9 +101,14 @@ public class AS_ReadPosRankSumTestUnitTest extends ReducibleAnnotationBaseTest {
 
         final Map<String, Object> annotateRaw = ann.annotateRawData(ref, vc, likelihoods);
         final Map<String, Object> annotateNonRaw = ann.annotate(ref, vc, likelihoods);
-        final String expected = startAlts[0] + ",1," + startAlts[1] + ",1" + AS_RankSumTest.PRINT_DELIM + startRefs[0] + ",1," + startRefs[1] + ",1";
-        Assert.assertEquals(annotateRaw.get(key1), expected);
-        Assert.assertEquals(annotateNonRaw.get(key1), expected);
+
+        final MannWhitneyU mannWhitneyU = new MannWhitneyU();
+
+        MannWhitneyU.Result expectedAlt = mannWhitneyU.test(new double[]{1.0, 2.0},new double[]{3.0, 4.0}, MannWhitneyU.TestType.FIRST_DOMINATES);
+        String firstExpected = "|"+String.format("%.1f",Math.round(Math.floor((expectedAlt.getZ() )/0.1))*0.1)+",1";
+
+        Assert.assertEquals(annotateRaw.get(key1), firstExpected);
+        Assert.assertEquals(annotateNonRaw.get(key1), firstExpected);
 
         final long positionEnd = 8L;  //past middle
         final VariantContext vcEnd= makeVC(positionEnd);
@@ -110,10 +116,12 @@ public class AS_ReadPosRankSumTestUnitTest extends ReducibleAnnotationBaseTest {
         //Note: past the middle of the read we compute the position from the end.
         final Map<String, Object> annotateEndRaw = ann.annotateRawData(ref, vcEnd, likelihoods);
         final Map<String, Object> annotateEndNonRaw = ann.annotate(ref, vcEnd, likelihoods);
-        final String refS = (startRefs[0]+readLength-positionEnd-1)+ ",1," +(startRefs[1]+readLength-positionEnd-1) + ",1";
-        final String altS = (positionEnd-startAlts[1]) + ",1," + (positionEnd-startAlts[0]) + ",1";
-        Assert.assertEquals(annotateEndRaw.get(key1), refS + AS_RankSumTest.PRINT_DELIM + altS );
-        Assert.assertEquals(annotateEndNonRaw.get(key1), refS + AS_RankSumTest.PRINT_DELIM + altS );
+
+        expectedAlt = mannWhitneyU.test(new double[]{(positionEnd-startAlts[1]),(positionEnd-startAlts[0]) },new double[]{(startRefs[0]+readLength-positionEnd-1), (startRefs[1]+readLength-positionEnd-1)}, MannWhitneyU.TestType.FIRST_DOMINATES);
+        String secondExpected = "|"+String.format("%.1f",Math.round(Math.floor((expectedAlt.getZ() )/0.1))*0.1)+",1";
+
+        Assert.assertEquals(annotateEndRaw.get(key1), secondExpected );
+        Assert.assertEquals(annotateEndNonRaw.get(key1), secondExpected );
 
         final long positionPastEnd = 20L;  //past middle
         final VariantContext vcPastEnd= makeVC(positionPastEnd);
@@ -121,10 +129,10 @@ public class AS_ReadPosRankSumTestUnitTest extends ReducibleAnnotationBaseTest {
         //Note: past the end of the read, there's nothing
         final Map<String, Object> annotatePastEndRaw = ann.annotateRawData(ref, vcPastEnd, likelihoods);
         final Map<String, Object> annotatePastEndNonRaw = ann.annotate(ref, vcPastEnd, likelihoods);
-        Assert.assertTrue(annotatePastEndRaw.isEmpty());
-        Assert.assertTrue(annotatePastEndNonRaw.isEmpty());
+        Assert.assertEquals(annotatePastEndRaw.get(key1), "|");
+        Assert.assertEquals(annotatePastEndNonRaw.get(key1), "|");
     }
-
+    
     @Override
     protected List<String> getAnnotationsToUse() {
         return Collections.singletonList(AS_ReadPosRankSumTest.class.getSimpleName());

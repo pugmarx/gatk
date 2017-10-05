@@ -57,7 +57,6 @@ public class AS_RMSMappingQualityUnitTest extends ReducibleAnnotationBaseTest {
         final VariantContext result = vae.finalizeAnnotations(vc, vc);
         Assert.assertNull(result.getAttribute(GATKVCFConstants.AS_RAW_RMS_MAPPING_QUALITY_KEY));
         Assert.assertNotNull(result.getAttribute(GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY));
-//        Math.sqrt((double) perAlleleValues.get(current) / variantADs.get(current)
         Assert.assertEquals(result.getAttribute(GATKVCFConstants.AS_RMS_MAPPING_QUALITY_KEY),String.format("%.2f",Math.sqrt(285.00/80)) + "," + String.format("%.2f",Math.sqrt(385.00/9)));
     }
 
