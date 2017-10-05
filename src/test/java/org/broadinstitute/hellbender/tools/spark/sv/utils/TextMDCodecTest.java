@@ -1,4 +1,4 @@
-package org.broadinstitute.hellbender.tools.spark.sv.evidence;
+package org.broadinstitute.hellbender.tools.spark.sv.utils;
 
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;

@@ -34,7 +34,6 @@ import org.broadinstitute.hellbender.utils.read.GATKRead;
 import org.broadinstitute.hellbender.utils.read.SAMRecordToGATKReadAdapter;
 import org.broadinstitute.hellbender.utils.spark.SparkUtils;
 import scala.Tuple2;
-import scala.Tuple3;
 
 import java.io.*;
 import java.util.*;
@@ -451,8 +450,8 @@ public final class FindBreakpointEvidenceSpark extends GATKSparkTool {
                         new ReadsForQNamesFinder(broadcastQNamesMultiMap.value(), nIntervals,
                                 includeMappingLocation, readItr, filter).iterator(), false)
                 .combineByKey(x -> x,
-                                FindBreakpointEvidenceSpark::combineLists,
-                                FindBreakpointEvidenceSpark::combineLists,
+                                SVFastqUtils::combineLists,
+                                SVFastqUtils::combineLists,
                                 new HashPartitioner(nIntervals), false, null)
                 .map(localAssemblyHandler::apply)
                 .collect();
@@ -461,15 +460,6 @@ public final class FindBreakpointEvidenceSpark extends GATKSparkTool {
         BwaMemIndexCache.closeAllDistributedInstances(ctx);
 
         return intervalDispositions;
-    }
-
-    /** Concatenate two lists. */
-    private static List<SVFastqUtils.FastqRead> combineLists(final List<SVFastqUtils.FastqRead> list1,
-                                                             final List<SVFastqUtils.FastqRead> list2 ) {
-        final List<SVFastqUtils.FastqRead> result = new ArrayList<>(list1.size() + list2.size());
-        result.addAll(list1);
-        result.addAll(list2);
-        return result;
     }
 
     /** This LocalAssemblyHandler aligns assembly contigs with BWA, along with some optional writing of intermediate results. */
@@ -910,7 +900,8 @@ public final class FindBreakpointEvidenceSpark extends GATKSparkTool {
         return new Tuple2<>(intervals, evidenceTargetLinks);
     }
 
-    private static void writeTargetLinks(final Broadcast<ReadMetadata> broadcastMetadata, final List<EvidenceTargetLink> targetLinks, final String targetLinkFile) {
+    private static void writeTargetLinks(final Broadcast<ReadMetadata> broadcastMetadata,
+                                         final List<EvidenceTargetLink> targetLinks, final String targetLinkFile) {
         if ( targetLinkFile != null ) {
             try (final OutputStreamWriter writer =
                          new OutputStreamWriter(new BufferedOutputStream(BucketUtils.createFile(targetLinkFile)))) {

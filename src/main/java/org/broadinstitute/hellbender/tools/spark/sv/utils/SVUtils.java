@@ -1,7 +1,5 @@
 package org.broadinstitute.hellbender.tools.spark.sv.utils;
 
-import htsjdk.samtools.Cigar;
-import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.spark.api.java.JavaRDD;
@@ -134,13 +132,6 @@ public final class SVUtils {
         }
     }
 
-    public static int matchLen( final Cigar cigar ) {
-        return cigar.getCigarElements().stream()
-                .filter(cigarElement -> cigarElement.getOperator().isAlignment())
-                .mapToInt(CigarElement::getLength)
-                .sum();
-    }
-
     /** return a good initialCapacity for a HashMap that will hold a given number of elements */
     public static int hashMapCapacity( final int nElements )
     {
@@ -162,6 +153,13 @@ public final class SVUtils {
 
     public static <T> Iterator<T> singletonIterator( final T t ) {
         return Collections.singletonList(t).iterator();
+    }
+
+    public static Collection<SVKmer> uniquify(final Collection<SVKmer> coll1, final Collection<SVKmer> coll2) {
+        final HopscotchSet<SVKmer> kmers = new HopscotchSet<>(coll1.size() + coll2.size());
+        kmers.addAll(coll1);
+        kmers.addAll(coll2);
+        return kmers;
     }
 
     public static class IteratorFilter<T> implements Iterator<T> {

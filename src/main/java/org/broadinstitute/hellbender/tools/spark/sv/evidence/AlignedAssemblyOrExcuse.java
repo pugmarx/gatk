@@ -7,6 +7,7 @@ import com.esotericsoftware.kryo.io.Output;
 import htsjdk.samtools.*;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVInterval;
+import org.broadinstitute.hellbender.tools.spark.sv.utils.SVReferenceUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.bwa.BwaMemAlignment;
 import org.broadinstitute.hellbender.utils.bwa.BwaMemAlignmentUtils;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -105,7 +105,7 @@ public final class AlignedAssemblyOrExcuse {
                               final List<AlignedAssemblyOrExcuse> alignedAssemblyOrExcuseList,
                               final boolean preOrdered ) {
         try ( final SAMFileWriter writer = createSAMFileWriter(samFile, header, preOrdered) ) {
-            final List<String> refNames = getRefNames(header);
+            final List<String> refNames = SVReferenceUtils.getRefNames(header);
             alignedAssemblyOrExcuseList.stream()
                     .filter(AlignedAssemblyOrExcuse::isNotFailure)
                     .flatMap(aa -> aa.toSAMStreamForAlignmentsOfThisAssembly(header,refNames))
@@ -130,11 +130,6 @@ public final class AlignedAssemblyOrExcuse {
         } else {
             throw new GATKException("cannot determine the alignment file format from its name: " + samFile);
         }
-    }
-
-    public static List<String> getRefNames(final SAMFileHeader header) {
-        return header.getSequenceDictionary().getSequences().stream()
-                .map(SAMSequenceRecord::getSequenceName).collect(Collectors.toList());
     }
 
     public static Stream<SAMRecord> toSAMStreamForOneContig(final SAMFileHeader header, final List<String> refNames,

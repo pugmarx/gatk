@@ -3,7 +3,6 @@ package org.broadinstitute.hellbender.tools.spark.sv.evidence;
 import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
-import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.broadinstitute.barclay.argparser.Argument;
@@ -15,14 +14,8 @@ import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.engine.spark.GATKSparkTool;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection;
-import org.broadinstitute.hellbender.tools.spark.sv.utils.SVDUSTFilteredKmerizer;
-import org.broadinstitute.hellbender.tools.spark.sv.utils.SVKmer;
-import org.broadinstitute.hellbender.tools.spark.sv.utils.SVKmerLong;
-import org.broadinstitute.hellbender.tools.spark.sv.utils.SVUtils;
-import org.broadinstitute.hellbender.tools.spark.utils.HopscotchMap;
-import org.broadinstitute.hellbender.tools.spark.utils.HopscotchSet;
+import org.broadinstitute.hellbender.tools.spark.sv.utils.*;
 import org.broadinstitute.hellbender.utils.gcs.BucketUtils;
-import scala.Tuple2;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -41,9 +34,6 @@ import java.util.List;
 public final class FindBadGenomicKmersSpark extends GATKSparkTool {
     private static final long serialVersionUID = 1L;
     @VisibleForTesting static final int MAX_KMER_FREQ = 3;
-    private static final int REF_RECORD_LEN = 10000;
-    // assuming we have ~1Gb/core, we can process ~1M kmers per partition
-    private static final int REF_RECORDS_PER_PARTITION = 1024*1024 / REF_RECORD_LEN;
 
     @Argument(doc = "file for ubiquitous kmer output", shortName = StandardArgumentDefinitions.OUTPUT_SHORT_NAME,
             fullName = StandardArgumentDefinitions.OUTPUT_LONG_NAME)
@@ -73,7 +63,7 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
         final ReferenceMultiSource referenceMultiSource = getReference();
         Collection<SVKmer> killList = findBadGenomicKmers(ctx, kSize, maxDUSTScore, referenceMultiSource, dict);
         if ( highCopyFastaFilename != null ) {
-            killList = uniquify(killList, processFasta(kSize, maxDUSTScore, highCopyFastaFilename));
+            killList = SVUtils.uniquify(killList, processFasta(kSize, maxDUSTScore, highCopyFastaFilename));
         }
 
         SVUtils.writeKmersFile(kSize, outputFile, killList);
@@ -88,59 +78,10 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
                                              final SAMSequenceDictionary readsDict ) {
         // Generate reference sequence RDD.
         final JavaRDD<byte[]> refRDD = SVUtils.getRefRDD(ctx, kSize, ref, readsDict,
-                                                                REF_RECORD_LEN, REF_RECORDS_PER_PARTITION);
+                                                        SVReferenceUtils.REF_RECORD_LEN, SVReferenceUtils.REF_RECORDS_PER_PARTITION);
 
         // Find the high copy number kmers
-        return processRefRDD(kSize, maxDUSTScore, MAX_KMER_FREQ, refRDD);
-    }
-
-    /**
-     * Do a map/reduce on an RDD of genomic sequences:
-     * Kmerize, mapping to a pair <kmer,1>, reduce by summing values by key, filter out <kmer,N> where
-     * N <= MAX_KMER_FREQ, and collect the high frequency kmers back in the driver.
-     */
-    @VisibleForTesting static List<SVKmer> processRefRDD( final int kSize,
-                                                          final int maxDUSTScore,
-                                                          final int maxKmerFreq,
-                                                          final JavaRDD<byte[]> refRDD ) {
-        final int nPartitions = refRDD.getNumPartitions();
-        final int hashSize = 2*REF_RECORDS_PER_PARTITION;
-        final int arrayCap = REF_RECORDS_PER_PARTITION/100;
-        return refRDD
-                .mapPartitions(seqItr -> {
-                    final HopscotchMap<SVKmer, Integer, KmerAndCount> kmerCounts = new HopscotchMap<>(hashSize);
-                    while ( seqItr.hasNext() ) {
-                        final byte[] seq = seqItr.next();
-                        SVDUSTFilteredKmerizer.stream(seq, kSize, maxDUSTScore, new SVKmerLong())
-                                .map(kmer -> kmer.canonical(kSize))
-                                .forEach(kmer -> {
-                                    final KmerAndCount entry = kmerCounts.find(kmer);
-                                    if ( entry == null ) kmerCounts.add(new KmerAndCount((SVKmerLong)kmer));
-                                    else entry.bumpCount();
-                                });
-                    }
-                    return kmerCounts.iterator();
-                })
-                .mapToPair(entry -> new Tuple2<>(entry.getKey(), entry.getValue()))
-                .partitionBy(new HashPartitioner(nPartitions))
-                .mapPartitions(pairItr -> {
-                    final HopscotchMap<SVKmer, Integer, KmerAndCount> kmerCounts =
-                            new HopscotchMap<>(hashSize);
-                    while ( pairItr.hasNext() ) {
-                        final Tuple2<SVKmer, Integer> pair = pairItr.next();
-                        final SVKmer kmer = pair._1();
-                        final int count = pair._2();
-                        KmerAndCount entry = kmerCounts.find(kmer);
-                        if ( entry == null ) kmerCounts.add(new KmerAndCount((SVKmerLong)kmer, count));
-                        else entry.bumpCount(count);
-                    }
-                    final List<SVKmer> highFreqKmers = new ArrayList<>(arrayCap);
-                    for ( KmerAndCount kmerAndCount : kmerCounts ) {
-                        if ( kmerAndCount.grabCount() > maxKmerFreq ) highFreqKmers.add(kmerAndCount.getKey());
-                    }
-                    return highFreqKmers.iterator();
-                })
-                .collect();
+        return SVReferenceUtils.processRefRDD(kSize, maxDUSTScore, MAX_KMER_FREQ, refRDD);
     }
 
     @VisibleForTesting static List<SVKmer> processFasta( final int kSize,
@@ -170,10 +111,4 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
         }
     }
 
-    private static Collection<SVKmer> uniquify(final Collection<SVKmer> coll1, final Collection<SVKmer> coll2 ) {
-        final HopscotchSet<SVKmer> kmers = new HopscotchSet<>(coll1.size() + coll2.size());
-        kmers.addAll(coll1);
-        kmers.addAll(coll2);
-        return kmers;
-    }
 }
