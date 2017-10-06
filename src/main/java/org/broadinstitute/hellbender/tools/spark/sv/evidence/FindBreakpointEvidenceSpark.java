@@ -404,7 +404,7 @@ public final class FindBreakpointEvidenceSpark extends GATKSparkTool {
             final Logger logger)
     {
         final Set<SVKmer> kmerKillSet =
-                SVUtils.readKmersFile(params.kSize,
+                SVFileUtils.readKmersFile(params.kSize,
                                         params.kmersToIgnoreFile,
                                         new SVKmerLong(params.kSize));
         if ( params.adapterSequence != null ) {
@@ -679,7 +679,7 @@ public final class FindBreakpointEvidenceSpark extends GATKSparkTool {
                                                                         final String exclusionIntervalsFile ) {
         if ( exclusionIntervalsFile == null ) return intervals;
         final SortedSet<SVInterval> gaps =
-                new TreeSet<>(SVUtils.readIntervalsFile(exclusionIntervalsFile, contigNameMap));
+                new TreeSet<>(SVFileUtils.readIntervalsFile(exclusionIntervalsFile, contigNameMap));
         return intervals.stream()
                 .filter(interval -> {
                     final SortedSet<SVInterval> headSet = gaps.headSet(interval);

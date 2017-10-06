@@ -66,7 +66,7 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
             killList = SVUtils.uniquify(killList, processFasta(kSize, maxDUSTScore, highCopyFastaFilename));
         }
 
-        SVUtils.writeKmersFile(kSize, outputFile, killList);
+        SVFileUtils.writeKmersFile(kSize, outputFile, killList);
     }
 
     /** Find high copy number kmers in the reference sequence */
@@ -77,7 +77,7 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
                                              final ReferenceMultiSource ref,
                                              final SAMSequenceDictionary readsDict ) {
         // Generate reference sequence RDD.
-        final JavaRDD<byte[]> refRDD = SVUtils.getRefRDD(ctx, kSize, ref, readsDict,
+        final JavaRDD<byte[]> refRDD = SVReferenceUtils.getRefRDD(ctx, kSize, ref, readsDict,
                                                         SVReferenceUtils.REF_RECORD_LEN, SVReferenceUtils.REF_RECORDS_PER_PARTITION);
 
         // Find the high copy number kmers
