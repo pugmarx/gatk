@@ -42,8 +42,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection.FindBreakpointEvidenceSparkArgumentCollection;
-import static org.broadinstitute.hellbender.tools.spark.sv.evidence.BreakpointEvidence.ReadEvidence;
 import static org.broadinstitute.hellbender.tools.spark.sv.evidence.BreakpointEvidence.ExternalEvidence;
+import static org.broadinstitute.hellbender.tools.spark.sv.evidence.BreakpointEvidence.ReadEvidence;
 
 /**
  * Tool to discover reads that support a hypothesis of a genomic breakpoint.
@@ -140,13 +140,16 @@ public final class FindBreakpointEvidenceSpark extends GATKSparkTool {
             AlignedAssemblyOrExcuse.writeIntervalFile(params.intervalFile, header, intervals, alignedAssemblyOrExcuseList);
         }
 
-        // write the output file
-        final SAMFileHeader cleanHeader = new SAMFileHeader(header.getSequenceDictionary());
-        cleanHeader.setSortOrder(params.assembliesSortOrder);
-
-        AlignedAssemblyOrExcuse.writeSAMFile(outputAssemblyAlignments, cleanHeader, alignedAssemblyOrExcuseList,
-                params.assembliesSortOrder == SAMFileHeader.SortOrder.queryname);
+        // write alignments of the assembled contigs
+        AlignedAssemblyOrExcuse.writeAssemblySAMFile(alignedAssemblyOrExcuseList, header, params.assembliesSortOrder, outputAssemblyAlignments);
         log("Wrote SAM file of aligned contigs.", toolLogger);
+//        // write the output file
+//        final SAMFileHeader cleanHeader = new SAMFileHeader(header.getSequenceDictionary());
+//        cleanHeader.setSortOrder(params.assembliesSortOrder);
+//
+//        AlignedAssemblyOrExcuse.writeSAMFile(outputAssemblyAlignments, cleanHeader, alignedAssemblyOrExcuseList,
+//                params.assembliesSortOrder == SAMFileHeader.SortOrder.queryname);
+//        log("Wrote SAM file of aligned contigs.", toolLogger);
 
         return new AssembledEvidenceResults(evidenceScanResults.readMetadata, alignedAssemblyOrExcuseList, evidenceScanResults.evidenceTargetLinks);
     }

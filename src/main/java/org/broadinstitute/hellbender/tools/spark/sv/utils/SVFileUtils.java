@@ -1,14 +1,11 @@
 package org.broadinstitute.hellbender.tools.spark.sv.utils;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileWriter;
-import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.*;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.utils.HopscotchSet;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.gcs.BucketUtils;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
-import org.broadinstitute.hellbender.utils.read.ReadUtils;
 
 import java.io.*;
 import java.util.*;
@@ -52,14 +49,34 @@ public final class SVFileUtils {
 
     public static void writeSAMFile(final Iterator<SAMRecord> alignments, final SAMFileHeader header, final String outputName,
                                     final boolean preOrdered) {
-        try (final SAMFileWriter writer = ReadUtils.createCommonSAMWriter(new File(outputName), null, header,
-                preOrdered, true, false) ) {
+
+        try (final SAMFileWriter writer = getSAMFileWriter(outputName, header, preOrdered) ) {
             alignments.forEachRemaining(writer::addAlignment);
         } catch ( final UncheckedIOException ie) {
             throw new GATKException("Can't write SAM file to the specified location: " + outputName, ie);
         }
     }
 
+    private static SAMFileWriter getSAMFileWriter(final String outputName, final SAMFileHeader header, final boolean preOrdered) {
+        final int idx = outputName.lastIndexOf(".");
+        if ( idx < 0) {
+            throw new IllegalArgumentException("Provided path doesn't have a proper extension: " + outputName);
+        }
+        final String fileExtension = outputName.substring(idx+1, outputName.length());
+        final SAMFileWriterFactory factory = new SAMFileWriterFactory()
+                .setCreateIndex(preOrdered && header.getSortOrder()== SAMFileHeader.SortOrder.coordinate);
+        final OutputStream outputStream = BucketUtils.createFile(outputName);
+
+        if (fileExtension.endsWith(SamReader.Type.BAM_TYPE.fileExtension())) {
+            return factory.makeBAMWriter(header, preOrdered, outputStream);
+        } else if (fileExtension.endsWith(SamReader.Type.SAM_TYPE.fileExtension())) {
+            return factory.makeSAMWriter(header, preOrdered, outputStream);
+        } else if (fileExtension.endsWith(SamReader.Type.CRAM_TYPE.fileExtension())) {
+            throw new UnsupportedOperationException("We currently don't support CRAM output");
+        } else {
+            throw new UnsupportedOperationException("Unrecognized file type: " + outputName);
+        }
+    }
 
     /**
      * Read a file of kmers.
