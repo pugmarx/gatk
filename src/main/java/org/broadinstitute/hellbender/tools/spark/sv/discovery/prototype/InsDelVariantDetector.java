@@ -1,6 +1,7 @@
 package org.broadinstitute.hellbender.tools.spark.sv.discovery.prototype;
 
 import com.google.cloud.dataflow.sdk.options.PipelineOptions;
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -25,7 +26,7 @@ final class InsDelVariantDetector implements VariantDetectorFromLocalAssemblyCon
 
     @Override
     public void inferSvAndWriteVCF(final JavaRDD<AlignedContig> localAssemblyContigs, final String vcfOutputFileName,
-                                   final Broadcast<ReferenceMultiSource> broadcastReference, final String fastaReference,
+                                   final Broadcast<ReferenceMultiSource> broadcastReference, final SAMSequenceDictionary refSequenceDictionary,
                                    final Logger toolLogger){
 
         final JavaPairRDD<byte[], List<ChimericAlignment>> chimericAlignments =
@@ -43,10 +44,7 @@ final class InsDelVariantDetector implements VariantDetectorFromLocalAssemblyCon
                         .map(noveltyTypeAndEvidence -> DiscoverVariantsFromContigAlignmentsSAMSpark.annotateVariant(noveltyTypeAndEvidence._1,
                                 noveltyTypeAndEvidence._2._1, null, noveltyTypeAndEvidence._2._2, broadcastReference));
 
-
-        final PipelineOptions pipelineOptions = null;
-        SVVCFWriter.writeVCF(annotatedVariants.collect(), vcfOutputFileName, new ReferenceMultiSource(pipelineOptions, fastaReference,
-                ReferenceWindowFunctions.IDENTITY_FUNCTION).getReferenceSequenceDictionary(null), toolLogger);
+        SVVCFWriter.writeVCF(annotatedVariants.collect(), vcfOutputFileName, refSequenceDictionary, toolLogger);
     }
 
     /**

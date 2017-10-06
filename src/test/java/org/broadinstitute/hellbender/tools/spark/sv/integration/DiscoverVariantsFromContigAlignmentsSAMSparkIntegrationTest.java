@@ -35,14 +35,13 @@ public class DiscoverVariantsFromContigAlignmentsSAMSparkIntegrationTest extends
         String getCommandLineNoApiKey() {
             return  " -R " + SVIntegrationTestDataProvider.reference_2bit +
                     " -I " + SVIntegrationTestDataProvider.TEST_CONTIG_SAM +
-                    " -O " + outputDir + "/variants.vcf" +
-                    " --fastaReference " + SVIntegrationTestDataProvider.reference;
+                    " -O " + outputDir + "/variants.vcf";
         }
 
     }
 
     @DataProvider(name = "discoverVariantsFromContigAlignmentsSparkIntegrationTest")
-    public Object[][] createTestData() throws IOException {
+    public Object[][] createTestData() {
         List<Object[]> tests = new ArrayList<>();
         final File tempDirLeft = BaseTest.createTempDir("forLeft");
         tempDirLeft.deleteOnExit();
@@ -55,7 +54,8 @@ public class DiscoverVariantsFromContigAlignmentsSAMSparkIntegrationTest extends
 
         final List<String> args = Arrays.asList( new ArgumentsBuilder().add(params.getCommandLineNoApiKey()).getArgsArray() );
         runCommandLine(args);
-        StructuralVariationDiscoveryPipelineSparkIntegrationTest.svDiscoveryVCFEquivalenceTest(args.get(args.indexOf("-O")+1), SVIntegrationTestDataProvider.EXPECTED_SIMPLE_DEL_VCF, annotationsToIgnoreWhenComparingVariants, false);
+        StructuralVariationDiscoveryPipelineSparkIntegrationTest.svDiscoveryVCFEquivalenceTest(args.get(args.indexOf("-O")+1),
+                SVIntegrationTestDataProvider.EXPECTED_SIMPLE_DEL_VCF, annotationsToIgnoreWhenComparingVariants, false);
     }
 
     @Test(dataProvider = "discoverVariantsFromContigAlignmentsSparkIntegrationTest", groups = "sv")
@@ -80,17 +80,6 @@ public class DiscoverVariantsFromContigAlignmentsSAMSparkIntegrationTest extends
             cluster.getFileSystem().copyFromLocalFile(new Path(file.toURI()), path);
             argsToBeModified.set(idx+1, path.toUri().toString());
 
-            idx = argsToBeModified.indexOf("--fastaReference");
-            path = new Path(workingDirectory, "reference.fasta");
-            file = new File(argsToBeModified.get(idx+1));
-            cluster.getFileSystem().copyFromLocalFile(new Path(file.toURI()), path);
-            argsToBeModified.set(idx+1, path.toUri().toString());
-
-            path = new Path(workingDirectory, "reference.fasta.fai");
-            cluster.getFileSystem().copyFromLocalFile(new Path(SVIntegrationTestDataProvider.reference_fai.toURI()), path);
-            path = new Path(workingDirectory, "reference.dict");
-            cluster.getFileSystem().copyFromLocalFile(new Path(SVIntegrationTestDataProvider.reference_dict.toURI()), path);
-
             // outputs, prefix with hdfs address
             idx = argsToBeModified.indexOf("-O");
             path = new Path(workingDirectory, "variants.vcf");
@@ -98,7 +87,8 @@ public class DiscoverVariantsFromContigAlignmentsSAMSparkIntegrationTest extends
             argsToBeModified.set(idx+1, vcfOnHDFS);
 
             runCommandLine(argsToBeModified);
-            StructuralVariationDiscoveryPipelineSparkIntegrationTest.svDiscoveryVCFEquivalenceTest(vcfOnHDFS, SVIntegrationTestDataProvider.EXPECTED_SIMPLE_DEL_VCF, annotationsToIgnoreWhenComparingVariants, true);
+            StructuralVariationDiscoveryPipelineSparkIntegrationTest.svDiscoveryVCFEquivalenceTest(vcfOnHDFS,
+                    SVIntegrationTestDataProvider.EXPECTED_SIMPLE_DEL_VCF, annotationsToIgnoreWhenComparingVariants, true);
         });
     }
 }
