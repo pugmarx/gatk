@@ -8,7 +8,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.broadinstitute.hellbender.tools.spark.utils.HopscotchMap;
 import scala.Tuple2;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,14 +28,12 @@ public final class SVReferenceUtils {
                                              final JavaRDD<byte[]> refRDD) {
         final int nPartitions = refRDD.getNumPartitions();
         final int hashSize = 2*REF_RECORDS_PER_PARTITION;
-        final int arrayCap = REF_RECORDS_PER_PARTITION/100;
         return refRDD
                 .mapPartitions(seqItr -> {
                     final HopscotchMap<SVKmer, Integer, KmerAndCount> kmerCounts = new HopscotchMap<>(hashSize);
                     while ( seqItr.hasNext() ) {
                         final byte[] seq = seqItr.next();
-                        SVDUSTFilteredKmerizer.stream(seq, kSize, maxDUSTScore, new SVKmerLong())
-                                .map(kmer -> kmer.canonical(kSize))
+                        SVDUSTFilteredKmerizer.canonicalStream(seq, kSize, maxDUSTScore, new SVKmerLong())
                                 .forEach(kmer -> {
                                     final KmerAndCount entry = kmerCounts.find(kmer);
                                     if ( entry == null ) kmerCounts.add(new KmerAndCount((SVKmerLong)kmer));
@@ -58,11 +55,9 @@ public final class SVReferenceUtils {
                         if ( entry == null ) kmerCounts.add(new KmerAndCount((SVKmerLong)kmer, count));
                         else entry.bumpCount(count);
                     }
-                    final List<SVKmer> highFreqKmers = new ArrayList<>(arrayCap);
-                    for ( KmerAndCount kmerAndCount : kmerCounts ) {
-                        if ( kmerAndCount.grabCount() > maxKmerFreq ) highFreqKmers.add(kmerAndCount.getKey());
-                    }
-                    return highFreqKmers.iterator();
+                    return kmerCounts.stream()
+                            .filter(kmerAndCount -> kmerAndCount.grabCount() > maxKmerFreq)
+                            .map(KmerAndCount::getKey).iterator();
                 })
                 .collect();
     }

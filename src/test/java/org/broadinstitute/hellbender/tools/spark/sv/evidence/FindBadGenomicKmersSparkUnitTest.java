@@ -70,7 +70,6 @@ public class FindBadGenomicKmersSparkUnitTest extends BaseTest {
             SVKmerizer.canonicalStream(bases, KMER_SIZE, new SVKmerLong())
                     .forEach(kmer -> kmerMap.put(kmer, kmerMap.getOrDefault(kmer, 0L) + 1));
         }
-        final Iterator<Map.Entry<SVKmer, Long>> kmerIterator = kmerMap.entrySet().iterator();
         kmerMap.entrySet().removeIf( x -> x.getValue() <= FindBadGenomicKmersSpark.MAX_KMER_FREQ);
 
         final List<SVKmer> badKmers =

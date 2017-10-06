@@ -95,14 +95,12 @@ public final class FindBadGenomicKmersSpark extends GATKSparkTool {
             while ( (line = rdr.readLine()) != null ) {
                 if ( line.charAt(0) != '>' ) sb.append(line);
                 else if ( sb.length() > 0 ) {
-                    SVDUSTFilteredKmerizer.stream(sb,kSize,maxDUSTScore,kmerSeed)
-                            .map(kmer -> kmer.canonical(kSize)).forEach(kmers::add);
+                    SVDUSTFilteredKmerizer.canonicalStream(sb,kSize,maxDUSTScore,kmerSeed).forEach(kmers::add);
                     sb.setLength(0);
                 }
             }
             if ( sb.length() > 0 ) {
-                SVDUSTFilteredKmerizer.stream(sb,kSize,maxDUSTScore,kmerSeed)
-                        .map(kmer -> kmer.canonical(kSize)).forEach(kmers::add);
+                SVDUSTFilteredKmerizer.canonicalStream(sb,kSize,maxDUSTScore,kmerSeed).forEach(kmers::add);
             }
             return kmers;
         }
